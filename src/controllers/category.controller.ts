@@ -1,8 +1,8 @@
 import { resultMessage } from "config";
 import { prisma } from "db";
-import { Request, Response } from "express";
+import { Request, RequestHandler, Response } from "express";
 
-export const getProductCategories = async (req: Request, res: Response) => {
+export const getProductCategories: RequestHandler = async (req, res) => {
   try {
     const { pr_cd } = req.params;
 
@@ -11,18 +11,18 @@ export const getProductCategories = async (req: Request, res: Response) => {
       include: { category: true },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "商品のカテゴリ取得に成功しました",
       result: links,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "商品のカテゴリ取得に失敗しました",
       result: error,
     });
   }
 };
-export const saveProductCategory = async (req: Request, res: Response) => {
+export const saveProductCategory: RequestHandler = async (req, res) => {
   try {
     const { pr_cd, ctg_cd } = req.body;
 
@@ -40,18 +40,18 @@ export const saveProductCategory = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "商品のカテゴリリンク保存に成功しました",
       result: resultMessage.success,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "商品のカテゴリリンク保存に失敗しました",
       result: error,
     });
   }
 };
-export const createCategory = async (req: Request, res: Response) => {
+export const createCategory: RequestHandler = async (req, res) => {
   try {
     const { name, parent_cd } = req.body;
 
@@ -72,18 +72,18 @@ export const createCategory = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "カテゴリ作成に成功しました",
       result: newCategory,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "カテゴリ作成に失敗しました",
       result: error,
     });
   }
 };
-export const updateCategoryOrder = async (req: Request, res: Response) => {
+export const updateCategoryOrder: RequestHandler = async (req, res) => {
   try {
     const {
       sortedCategories,
@@ -98,12 +98,12 @@ export const updateCategoryOrder = async (req: Request, res: Response) => {
 
     await Promise.all(updates);
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "カテゴリの並び順更新に成功しました",
       result: resultMessage.success,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "カテゴリの並び順更新に失敗しました",
       result: error,
     });

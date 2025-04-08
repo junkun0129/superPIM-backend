@@ -14,27 +14,20 @@ model asset {
   ast_name  String?    @db.VarChar(255)
   asb_cd    String?    @db.Char(36)
   pr_cd     String?    @db.Char(36)
-  wks_cd    String?    @db.Char(36)
   assetbox  assetbox?  @relation(fields: [asb_cd], references: [asb_cd], map: "Asset_asb_cd_fkey")
   product   product?   @relation(fields: [pr_cd], references: [pr_cd], map: "Asset_pr_cd_fkey")
-  workspace workspace? @relation(fields: [wks_cd], references: [wks_cd], map: "Asset_wks_cd_fkey")
-
+ 
   @@index([asb_cd], map: "Asset_asb_cd_fkey")
   @@index([pr_cd], map: "Asset_pr_cd_fkey")
-  @@index([wks_cd], map: "Asset_wks_cd_fkey")
 }
 
 model assetbox {
   asb_cd      String     @id @db.Char(36)
-  asb_ext     String?    @db.VarChar(255)
   asb_is_main Boolean?
   asb_lbl     String?    @db.VarChar(255)
   asb_type    String?    @db.VarChar(255)
-  wks_cd      String?    @db.Char(36)
   asset       asset[]
-  workspace   workspace? @relation(fields: [wks_cd], references: [wks_cd], map: "Assetbox_wks_cd_fkey")
-
-  @@index([wks_cd], map: "Assetbox_wks_cd_fkey")
+ 
 }
 
 model attr {

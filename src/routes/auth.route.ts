@@ -3,7 +3,8 @@ import {
   signUpController,
 } from "../controllers/auth.controller";
 
-const router = require("express").Router();
+import express from "express";
+const router = express.Router();
 
 router.post("/signup", signUpController);
 router.post("/signin", signinController);

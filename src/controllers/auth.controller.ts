@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, RequestHandler, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { prisma } from "../db";
@@ -13,8 +13,7 @@ const generateToken = (user: {
 }): string => {
   const payload = { email: user.user_email, user_cd: user.user_cd };
   return jwt.sign(payload, jwtConfig.secret, {
-    algorithm: jwtConfig.jwtAlgorithm,
-    expiresIn: jwtConfig.expiresLong,
+    algorithm: "HS256",
   });
 };
 
@@ -26,10 +25,7 @@ const formatUserResponse = (user: user) => ({
 });
 
 // SignUp Controller
-export const signUpController = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
+export const signUpController: RequestHandler = async (req, res) => {
   try {
     const { email, password, username } = req.body;
     // Check if user exists
@@ -41,10 +37,11 @@ export const signUpController = async (
     console.log(existingUser, "existingUser");
 
     if (existingUser) {
-      return res.status(409).json({
+      res.status(409).json({
         message: "同じメールアドレスがすでに使われています",
         result: "failed",
       });
+      return;
     }
 
     // Create new user
@@ -60,13 +57,13 @@ export const signUpController = async (
       },
     });
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "ユーザーの登録に成功しました",
       result: "success",
       data: formatUserResponse(newUser),
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "データベースとの接続に失敗しました",
       result: error,
     });
@@ -74,10 +71,7 @@ export const signUpController = async (
 };
 
 // SignIn Controller
-export const signinController = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
+export const signinController: RequestHandler = async (req, res) => {
   try {
     const { email, password }: { email: string; password: string } = req.body;
 
@@ -86,23 +80,25 @@ export const signinController = async (
       where: { user_email: email },
     });
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         message: "そのメールアドレスで登録されているアカウントはありません",
         result: "failed",
       });
+      return;
     }
 
     const isValidPassword = await bcrypt.compare(password, user.user_password);
     if (!isValidPassword) {
-      return res.status(401).json({
+      res.status(401).json({
         message: "パスワードが違います",
         result: "failed",
       });
+      return;
     }
 
     // Generate token and send response
     const token = generateToken(user);
-    return res.status(200).json({
+    res.status(200).json({
       message: "ログインに成功しました",
       result: "success",
       data: {
@@ -111,7 +107,7 @@ export const signinController = async (
       },
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "ログイン処理中にエラーが発生しました",
       result: "failed",
     });

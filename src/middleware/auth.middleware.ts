@@ -1,18 +1,15 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import { jwt as jwtConfig } from "../config";
 
-export const authMiddleware = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const authMiddleware: RequestHandler = async (req, res, next) => {
   try {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
 
     if (!token) {
-      return res.status(401).json({ message: "トークンが見つかりません" });
+      res.status(401).json({ message: "トークンが見つかりません" });
+      return;
     }
 
     const decoded = jwt.verify(token, jwtConfig.secret);
@@ -21,6 +18,6 @@ export const authMiddleware = (
 
     next();
   } catch (err) {
-    return res.status(401).json({ message: "認証できません" });
+    res.status(401).json({ message: "認証できません" });
   }
 };

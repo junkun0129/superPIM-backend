@@ -1,19 +1,20 @@
 import { Prisma, product } from "@prisma/client";
 import { resultMessage } from "config";
 import { prisma } from "db";
-import { Request, Response } from "express";
+import { Request, RequestHandler, Response } from "express";
 import { generateRandomString, normalizeBoolean } from "utils";
 
-export const getAttrList = async (req: Request, res: Response) => {
+export const getAttrList: RequestHandler = async (req, res) => {
   try {
     const { pg, ps, or, kw } = req.params;
     const offset: number = (Number(pg) - 1) * Number(ps);
     const pageSize: number = Number(ps);
     if (or !== "asc" && or !== "desc") {
-      return res.status(400).json({
+      res.status(400).json({
         message: "orderByの値が不正です",
         result: "failed",
       });
+      return;
     }
     const orderBy: Prisma.attrOrderByWithRelationInput = {
       atr_name: or,
@@ -29,29 +30,30 @@ export const getAttrList = async (req: Request, res: Response) => {
       orderBy,
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "属性一覧の取得に成功しました",
       result: resultMessage.success,
       data: attrList,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });
   }
 };
 
-export const getPclList = async (req: Request, res: Response) => {
+export const getPclList: RequestHandler = async (req, res) => {
   try {
     const { pg, ps, or, kw } = req.params;
     const offset: number = (Number(pg) - 1) * Number(ps);
     const pageSize: number = Number(ps);
     if (or !== "asc" && or !== "desc") {
-      return res.status(400).json({
+      res.status(400).json({
         message: "orderByの値が不正です",
         result: "failed",
       });
+      return;
     }
     const orderBy: Prisma.pclOrderByWithRelationInput = {
       pcl_name: or,
@@ -67,29 +69,30 @@ export const getPclList = async (req: Request, res: Response) => {
       orderBy,
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "属性一覧の取得に成功しました",
       result: resultMessage.success,
       data: pclList,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });
   }
 };
 
-export const getPclAttrsList = async (req: Request, res: Response) => {
+export const getPclAttrsList: RequestHandler = async (req, res) => {
   try {
     const { pg, ps, or, kw, pcl, wks_cd } = req.params;
     const offset: number = (Number(pg) - 1) * Number(ps);
     const pageSize: number = Number(ps);
     if (or !== "asc" && or !== "desc") {
-      return res.status(400).json({
+      res.status(400).json({
         message: "orderByの値が不正です",
         result: resultMessage.failed,
       });
+      return;
     }
     const orderBy: Prisma.attrpclOrderByWithRelationInput = {
       atr_cd: or,
@@ -108,13 +111,13 @@ export const getPclAttrsList = async (req: Request, res: Response) => {
       orderBy,
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "属性一覧の取得に成功しました",
       result: resultMessage.success,
       data: attrPclList,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });
@@ -130,7 +133,7 @@ type CreateAttrBody = {
   atr_default_value: string;
   atr_unit: string;
 }[];
-export const createAttr = async (req: Request, res: Response) => {
+export const createAttr: RequestHandler = async (req, res) => {
   try {
     const attrs: CreateAttrBody = req.body;
 
@@ -167,19 +170,19 @@ export const createAttr = async (req: Request, res: Response) => {
       data: data,
     });
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "属性の作成に成功しました",
       result: resultMessage.success,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });
   }
 };
 
-export const createPcl = async (req: Request, res: Response) => {
+export const createPcl: RequestHandler = async (req, res) => {
   try {
     const { pcl_name } = req.body;
     const pcl_cd = generateRandomString(36);
@@ -191,13 +194,13 @@ export const createPcl = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "属性の作成に成功しました",
       result: resultMessage.success,
       data: newPcl,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });
@@ -212,7 +215,7 @@ type AddAttrsToPclBody = {
   atp_alter_value: string;
   atp_is_common: string;
 }[];
-export const addAttrsToPcl = async (req: Request, res: Response) => {
+export const addAttrsToPcl: RequestHandler = async (req, res) => {
   try {
     const body: AddAttrsToPclBody = req.body;
 
@@ -243,19 +246,19 @@ export const addAttrsToPcl = async (req: Request, res: Response) => {
       data,
     });
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "属性の作成に成功しました",
       result: resultMessage.success,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });
   }
 };
 
-export const updateAttr = async (req: Request, res: Response) => {
+export const updateAttr: RequestHandler = async (req, res) => {
   try {
     const { atr_cd } = req.params;
     const {
@@ -283,20 +286,20 @@ export const updateAttr = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "属性の更新に成功しました",
       result: resultMessage.success,
       data: updatedAttr,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });
   }
 };
 
-export const updatePcl = async (req: Request, res: Response) => {
+export const updatePcl: RequestHandler = async (req, res) => {
   try {
     const { pcl_cd } = req.params;
     const { pcl_name } = req.body;
@@ -308,77 +311,77 @@ export const updatePcl = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "属性の更新に成功しました",
       result: resultMessage.success,
       data: updatedPcl,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });
   }
 };
 
-export const deleteAttr = async (req: Request, res: Response) => {
+export const deleteAttr: RequestHandler = async (req, res) => {
   try {
     const { atr_cd } = req.params;
     await prisma.attr.delete({
       where: { atr_cd },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "属性の削除に成功しました",
       result: resultMessage.success,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });
   }
 };
 
-export const deletePcl = async (req: Request, res: Response) => {
+export const deletePcl: RequestHandler = async (req, res) => {
   try {
     const { pcl_cd } = req.params;
     await prisma.pcl.delete({
       where: { pcl_cd },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "属性の削除に成功しました",
       result: resultMessage.success,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });
   }
 };
 
-export const deleteAttrPcl = async (req: Request, res: Response) => {
+export const deleteAttrPcl: RequestHandler = async (req, res) => {
   try {
     const { atp_cd } = req.params;
     await prisma.attrpcl.delete({
       where: { atp_cd },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "属性の削除に成功しました",
       result: resultMessage.success,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });
   }
 };
 
-export const updateAttrPcl = async (req: Request, res: Response) => {
+export const updateAttrPcl: RequestHandler = async (req, res) => {
   try {
     const { atp_cd } = req.params;
     const {
@@ -403,19 +406,19 @@ export const updateAttrPcl = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "属性の更新に成功しました",
       result: resultMessage.success,
       data: updatedAttrPcl,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });
   }
 };
-export const updateAttrPclOrder = async (req: Request, res: Response) => {
+export const updateAttrPclOrder: RequestHandler = async (req, res) => {
   try {
     const { atp_cd, atp_order } = req.params;
     await prisma.attrpcl.update({
@@ -425,12 +428,12 @@ export const updateAttrPclOrder = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "属性の更新に成功しました",
       result: resultMessage.success,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });
@@ -444,7 +447,7 @@ type UpdateAttrValueBody = {
     value: string;
   }[];
 };
-export const updateAttrValue = async (req: Request, res: Response) => {
+export const updateAttrValue: RequestHandler = async (req, res) => {
   try {
     const body: UpdateAttrValueBody = req.body;
 
@@ -461,10 +464,11 @@ export const updateAttrValue = async (req: Request, res: Response) => {
         },
       });
       if (!atv_cd) {
-        return res.status(404).json({
+        res.status(404).json({
           message: "属性値が見つかりません",
           result: resultMessage.failed,
         });
+        return;
       }
       const attrpcl = await prisma.attrvalue.update({
         where: {
@@ -476,12 +480,12 @@ export const updateAttrValue = async (req: Request, res: Response) => {
       });
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "属性の更新に成功しました",
       result: resultMessage.success,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: resultMessage.failed,
       result: error,
     });

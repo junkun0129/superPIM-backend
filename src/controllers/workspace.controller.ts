@@ -1,26 +1,26 @@
 import { resultMessage } from "config";
 import { prisma } from "db";
-import { Request, Response } from "express";
+import { Request, RequestHandler, Response } from "express";
 import { generateRandomString } from "utils";
 
-export const getWorkspaces = async (req: Request, res: Response) => {
+export const getWorkspaces: RequestHandler = async (req, res) => {
   try {
     const workspaces = await prisma.workspace.findMany();
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "ワークスペースの取得に成功しました",
       result: resultMessage.success,
       data: workspaces,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "データベースとの接続に失敗しました",
       result: resultMessage.failed,
     });
   }
 };
 
-export const createWorkspace = async (req: Request, res: Response) => {
+export const createWorkspace: RequestHandler = async (req, res) => {
   try {
     const {
       name,
@@ -33,10 +33,11 @@ export const createWorkspace = async (req: Request, res: Response) => {
       where: { wks_name: name },
     });
     if (existingWorkspace) {
-      return res.status(409).json({
+      res.status(409).json({
         message: "ワークスペースはすでに存在します",
         result: resultMessage.alreadyExists,
       });
+      return;
     }
 
     // Create new workspace
@@ -50,13 +51,13 @@ export const createWorkspace = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "ワークスペースの作成に成功しました",
       result: resultMessage.success,
       data: newWorkspace,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "データベースとの接続に失敗しました",
       result: resultMessage.failed,
     });
