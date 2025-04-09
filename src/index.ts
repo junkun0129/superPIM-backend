@@ -6,6 +6,11 @@ import fileUpload from "express-fileupload";
 import dotenv from "dotenv";
 import authRoute from "./routes/auth.route";
 import productRoute from "./routes/product.route";
+import categoryRoute from "./routes/category.route";
+import workspaceRoute from "./routes/workspace.route";
+import headerRoute from "./routes/header.route";
+import attrpclRoute from "./routes/attrpcl.route";
+
 // Load environment variables
 dotenv.config();
 
@@ -23,6 +28,10 @@ app.use(express.json());
 
 app.use("/auth", authRoute);
 app.use("/product", productRoute);
+app.use("/category", categoryRoute);
+app.use("/workspace", workspaceRoute);
+app.use("/header", headerRoute);
+app.use("/atp", attrpclRoute);
 
 // Start server
 server.listen(3000, () => {

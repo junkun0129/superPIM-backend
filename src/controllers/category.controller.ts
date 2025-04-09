@@ -2,6 +2,24 @@ import { resultMessage } from "config";
 import { prisma } from "db";
 import { Request, RequestHandler, Response } from "express";
 
+export const getCategories: RequestHandler = async (req, res) => {
+  try {
+    const categories = await prisma.category.findMany({
+      where: { parent_cd: "" },
+      include: { children: true },
+    });
+    res.status(200).json({
+      result: resultMessage,
+      data: categories,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "",
+      result: resultMessage.failed,
+    });
+  }
+};
+
 export const getProductCategories: RequestHandler = async (req, res) => {
   try {
     const { pr_cd } = req.params;

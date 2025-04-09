@@ -1,13 +1,10 @@
 import { prisma } from "db";
-import { Request, Response } from "express";
-import { generateRandomString, getUserCd, normalizeBoolean } from "utils";
-import { product, Prisma } from "@prisma/client";
+import { RequestHandler } from "express";
+import { generateRandomString, normalizeBoolean } from "utils";
+import { Prisma } from "@prisma/client";
 import { resultMessage } from "config";
 
-export const getProductsList = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
+export const getProductsList: RequestHandler = async (req, res) => {
   try {
     const { is, pg, ps, ws, ob, or, kw } = req.params;
     const offset: number = (Number(pg) - 1) * Number(ps);
@@ -17,11 +14,13 @@ export const getProductsList = async (
     };
 
     const isSeries = normalizeBoolean(is);
-    if (!isSeries)
-      return res.status(400).json({
+    if (!isSeries) {
+      res.status(400).json({
         message: "isの値が不正です",
         result: resultMessage.failed,
       });
+      return;
+    }
 
     const baseWhere: Prisma.productWhereInput = {
       pr_is_series: isSeries,
@@ -56,19 +55,19 @@ export const getProductsList = async (
       orderBy,
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       result: resultMessage.success,
       data: products,
     });
   } catch (err) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "データベースとの接続に失敗しました",
       result: err,
     });
   }
 };
 
-export const getFilterdProductsList = async (req: Request, res: Response) => {
+export const getFilterdProductsList: RequestHandler = async (req, res) => {
   try {
     const { is, pg, ps, ws, ob, or, kw } = req.params;
     const {
@@ -84,11 +83,13 @@ export const getFilterdProductsList = async (req: Request, res: Response) => {
     };
 
     const isSeries = normalizeBoolean(is);
-    if (!isSeries)
-      return res.status(400).json({
+    if (!isSeries) {
+      res.status(400).json({
         message: "isの値が不正です",
         result: resultMessage.failed,
       });
+      return;
+    }
 
     const baseWhere: Prisma.productWhereInput = {
       pr_is_series: isSeries,
@@ -110,7 +111,7 @@ export const getFilterdProductsList = async (req: Request, res: Response) => {
             },
           },
         };
-      });
+      }) as any;
 
     consWhere.OR = cons
       .filter((con) => con.con === "or")
@@ -125,7 +126,7 @@ export const getFilterdProductsList = async (req: Request, res: Response) => {
             },
           },
         };
-      });
+      }) as any;
 
     let kwWhere: Prisma.productWhereInput = {};
 
@@ -156,22 +157,19 @@ export const getFilterdProductsList = async (req: Request, res: Response) => {
       orderBy,
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       result: resultMessage.success,
       data: products,
     });
   } catch (err) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "データベースとの接続に失敗しました",
       result: err,
     });
   }
 };
 
-export const updateProduct = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
+export const updateProduct: RequestHandler = async (req, res) => {
   try {
     const {
       cd,
@@ -208,52 +206,47 @@ export const updateProduct = async (
       },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       result: resultMessage.success,
     });
   } catch (err) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "データベースとの接続に失敗しました",
       result: resultMessage.failed,
     });
   }
 };
 
-export const deleteProduct = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
+export const deleteProduct: RequestHandler = async (req, res) => {
   try {
     const { cd }: { cd: string } = req.body;
-    const product = await prisma.product.delete({
+    await prisma.product.delete({
       where: {
         pr_cd: cd,
       },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       result: resultMessage.success,
     });
   } catch (err) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "データベースとの接続に失敗しました",
       result: resultMessage.failed,
     });
   }
 };
 
-export const updateProductStatus = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
+export const updateProductStatus: RequestHandler = async (req, res) => {
   try {
     const { cd, status }: { cd: string; status: string } = req.body;
     const pr_status = Number(status);
     if (isNaN(pr_status) || pr_status < 0 || pr_status > 2) {
-      return res.status(400).json({
+      res.status(400).json({
         message: "statusの値が不正です",
         result: resultMessage.failed,
       });
+      return;
     }
     const product = await prisma.product.update({
       where: {
@@ -264,21 +257,18 @@ export const updateProductStatus = async (
       },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       result: resultMessage.success,
     });
   } catch (err) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "データベースとの接続に失敗しました",
       result: resultMessage.failed,
     });
   }
 };
 
-export const createProduct = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
+export const createProduct: RequestHandler = async (req, res) => {
   try {
     const {
       pr_name,
@@ -325,22 +315,19 @@ export const createProduct = async (
       },
     });
 
-    return res.status(201).json({
+    res.status(201).json({
       result: resultMessage.success,
       data: newProduct,
     });
   } catch (err) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "データベースとの接続に失敗しました",
       result: err,
     });
   }
 };
 
-export const checkProduct = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
+export const checkProduct: RequestHandler = async (req, res) => {
   try {
     const {
       pr_cd,
@@ -355,10 +342,11 @@ export const checkProduct = async (
     });
 
     if (doubleCd.length > 0) {
-      return res.status(409).json({
+      res.status(409).json({
         message: "同じCDがすでに使われています",
         result: resultMessage.failed,
       });
+      return;
     }
     const doubledName = await prisma.product.findMany({
       where: {
@@ -368,12 +356,13 @@ export const checkProduct = async (
     });
 
     if (doubledName.length > 0) {
-      return res.status(409).json({
+      res.status(409).json({
         message: "同じ名前がすでに使われています",
         result: resultMessage.failed,
       });
+      return;
     }
-    return res.status(200).json({
+    res.status(200).json({
       result: resultMessage.success,
     });
   } catch (err) {

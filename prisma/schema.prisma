@@ -86,6 +86,11 @@ model category {
   ctg_desc   String?      @db.Text
   ctg_order  Int?
   parent_cd  String?      @db.Char(36)
+
+  // 自己参照のリレーション
+  parent     category?    @relation("CategoryToSubcategories", fields: [parent_cd], references: [ctg_cd])
+  children   category[]   @relation("CategoryToSubcategories")
+
   prcategory prcategory[]
 }
 
@@ -174,8 +179,6 @@ model workspace {
   wks_desc       String?         @db.Text
   wks_created_by String          @db.Char(36)
   wks_created_at DateTime
-  asset          asset[]
-  assetbox       assetbox[]
   header         header[]
   product        product[]
   userworkspace  userworkspace[]
