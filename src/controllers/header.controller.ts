@@ -1,7 +1,7 @@
-import { resultMessage } from "config";
-import { prisma } from "db";
+import { resultMessage } from "../config";
+import { prisma } from "../db";
 import { Request, RequestHandler, Response } from "express";
-import { generateRandomString } from "utils";
+import { generateRandomString } from "../utils";
 
 export const getHeaders: RequestHandler = async (req, res) => {
   try {

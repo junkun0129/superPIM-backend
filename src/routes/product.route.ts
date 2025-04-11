@@ -6,9 +6,9 @@ import {
   getProductsList,
   updateProduct,
   updateProductStatus,
-} from "controllers/product.controller";
+} from "../controllers/product.controller";
 import express from "express";
-import { authMiddleware } from "middleware/auth.middleware";
+import { authMiddleware } from "../middleware/auth.middleware";
 const router = express.Router();
 
 router.get("/get", authMiddleware, getProductsList);

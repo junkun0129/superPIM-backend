@@ -1,8 +1,8 @@
-import { prisma } from "db";
+import { prisma } from "../db";
 import { RequestHandler } from "express";
-import { generateRandomString, normalizeBoolean } from "utils";
+import { generateRandomString, normalizeBoolean } from "../utils";
 import { Prisma } from "@prisma/client";
-import { resultMessage } from "config";
+import { resultMessage } from "../config";
 
 export const getProductsList: RequestHandler = async (req, res) => {
   try {

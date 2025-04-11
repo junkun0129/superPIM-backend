@@ -4,9 +4,9 @@ import {
   getHeaders,
   updateHeaderOrder,
   updateHeaderWidth,
-} from "controllers/header.controller";
+} from "../controllers/header.controller";
 import express from "express";
-import { authMiddleware } from "middleware/auth.middleware";
+import { authMiddleware } from "../middleware/auth.middleware";
 const router = express.Router();
 
 router.get("/get", authMiddleware, getHeaders);

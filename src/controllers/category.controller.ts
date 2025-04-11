@@ -1,5 +1,5 @@
-import { resultMessage } from "config";
-import { prisma } from "db";
+import { resultMessage } from "../config";
+import { prisma } from "../db";
 import { Request, RequestHandler, Response } from "express";
 
 export const getCategories: RequestHandler = async (req, res) => {

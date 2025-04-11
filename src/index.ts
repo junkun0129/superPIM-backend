@@ -25,7 +25,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // Routes
-
 app.use("/auth", authRoute);
 app.use("/product", productRoute);
 app.use("/category", categoryRoute);

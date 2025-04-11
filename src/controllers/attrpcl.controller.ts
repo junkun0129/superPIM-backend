@@ -1,8 +1,8 @@
 import { Prisma, product } from "@prisma/client";
-import { resultMessage } from "config";
-import { prisma } from "db";
+import { resultMessage } from "../config";
+import { prisma } from "../db";
 import { Request, RequestHandler, Response } from "express";
-import { generateRandomString, normalizeBoolean } from "utils";
+import { generateRandomString, normalizeBoolean } from "../utils";
 
 export const getAttrList: RequestHandler = async (req, res) => {
   try {
@@ -136,7 +136,6 @@ type CreateAttrBody = {
 export const createAttr: RequestHandler = async (req, res) => {
   try {
     const attrs: CreateAttrBody = req.body;
-
     const data: Prisma.attrCreateManyInput[] = attrs.map((attr) => {
       const {
         atr_name,
@@ -148,9 +147,11 @@ export const createAttr: RequestHandler = async (req, res) => {
         atr_default_value,
         atr_unit,
       } = attr;
+
       const atr_cd = generateRandomString(36);
       const atr_is_with_unit_bool = normalizeBoolean(attr_is_with_unit);
       const atr_not_null_bool = normalizeBoolean(atr_not_null);
+
       return {
         atr_cd,
         atr_name,

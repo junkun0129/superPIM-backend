@@ -33,7 +33,7 @@ export const signUpController: RequestHandler = async (req, res) => {
     const existingUser = await prisma.user.findFirst({
       where: { user_email: email },
     });
-
+    console.log(existingUser);
     console.log(existingUser, "existingUser");
 
     if (existingUser) {

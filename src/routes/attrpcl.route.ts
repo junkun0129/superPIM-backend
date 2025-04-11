@@ -13,7 +13,7 @@ import {
   deleteAttrPcl,
   updateAttrPcl,
 } from "../controllers/attrpcl.controller"; // コントローラーのファイル名に合わせてパスを調整してください
-import { authMiddleware } from "middleware/auth.middleware"; // 必要に応じて
+import { authMiddleware } from "../middleware/auth.middleware"; // 必要に応じて
 
 const router = express.Router();
 

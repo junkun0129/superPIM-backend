@@ -4,10 +4,10 @@ import {
   getProductCategories,
   saveProductCategory,
   updateCategoryOrder,
-} from "controllers/category.controller";
+} from "../controllers/category.controller";
 
 import express from "express";
-import { authMiddleware } from "middleware/auth.middleware";
+import { authMiddleware } from "../middleware/auth.middleware";
 const router = express.Router();
 
 router.get("/list", authMiddleware, getProductCategories);
