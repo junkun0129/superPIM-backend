@@ -185,7 +185,7 @@ export const updateProduct: RequestHandler = async (req, res) => {
       category: string;
     } = req.body;
 
-    const product = await prisma.product.update({
+    await prisma.product.update({
       where: {
         pr_cd: cd,
       },
@@ -248,7 +248,7 @@ export const updateProductStatus: RequestHandler = async (req, res) => {
       });
       return;
     }
-    const product = await prisma.product.update({
+    await prisma.product.update({
       where: {
         pr_cd: cd,
       },
@@ -348,6 +348,7 @@ export const checkProduct: RequestHandler = async (req, res) => {
       });
       return;
     }
+
     const doubledName = await prisma.product.findMany({
       where: {
         wks_cd,
@@ -362,6 +363,7 @@ export const checkProduct: RequestHandler = async (req, res) => {
       });
       return;
     }
+
     res.status(200).json({
       result: resultMessage.success,
     });

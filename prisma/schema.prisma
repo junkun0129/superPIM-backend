@@ -24,7 +24,7 @@ model asset {
 model assetbox {
   asb_cd      String     @id @db.Char(36)
   asb_is_main Boolean?
-  asb_lbl     String?    @db.VarChar(255)
+  asb_name    String     @db.VarChar(255)
   asb_type    String?    @db.VarChar(255)
   asset       asset[]
  
