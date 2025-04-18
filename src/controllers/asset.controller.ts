@@ -1,9 +1,9 @@
-import { resultMessage } from "config";
+import { resultMessage } from "../config";
 import { prisma } from "../db";
 import { RequestHandler } from "express";
 import fs from "fs";
 import path from "path";
-import { generateRandomString } from "utils";
+import { generateRandomString } from "../utils";
 export const getAssetBoxes: RequestHandler = async (req, res) => {
   try {
     const assetboxes = await prisma.assetbox.findMany();

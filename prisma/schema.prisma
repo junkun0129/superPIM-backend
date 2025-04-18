@@ -33,10 +33,10 @@ model assetbox {
 model attr {
   atr_cd            String      @id @db.Char(36)
   atr_name          String      @db.VarChar(255)
-  atr_is_delete     Boolean?
-  atr_is_with_unit  Boolean?
+  atr_is_delete     String      @db.Char(1)
+  atr_is_with_unit  String      @db.Char(1)
   atr_control_type  String?     @db.VarChar(255)
-  atr_not_null      Boolean?
+  atr_not_null      String      @db.Char(1)
   atr_max_length    Int?
   atr_select_list   String?     @db.Text
   atr_default_value String?     @db.VarChar(255)
@@ -52,18 +52,15 @@ model attr {
 model attrpcl {
   atp_cd            String   @id @db.Char(36)
   atp_order         Int
-  atp_is_show       Boolean?
+  atp_is_show       String   @db.Char(1)
   atp_alter_name    String?  @db.VarChar(255)
-  atp_alter_value   String?  @db.VarChar(255)
-  atp_is_common     Boolean?
+  atp_is_common     String   @db.Char(1)
   atr_cd            String   @db.Char(36)
   pcl_cd            String   @db.Char(36)
-  wks_cd            String   @db.Char(36)
   attr              attr     @relation(fields: [atr_cd], references: [atr_cd], map: "AttrPcl_atr_cd_fkey")
   pcl               pcl      @relation(fields: [pcl_cd], references: [pcl_cd], map: "AttrPcl_pcl_cd_fkey")
-  workspace         workspace @relation(fields: [wks_cd], references: [wks_cd], map: "AttrPcl_wks_cd_fkey")
 
-  @@index([wks_cd], map: "AttrPcl_wks_cd_fkey")
+
   @@index([atr_cd], map: "AttrPcl_atr_cd_fkey")
   @@index([pcl_cd], map: "AttrPcl_pcl_cd_fkey")
 }
@@ -88,10 +85,10 @@ model category {
   parent_cd  String?      @db.Char(36)
 
   // 自己参照のリレーション
-  parent     category?    @relation("CategoryToSubcategories", fields: [parent_cd], references: [ctg_cd])
-  children   category[]   @relation("CategoryToSubcategories")
+  parent     category?   @relation("CategoryToSubcategories", fields: [parent_cd], references: [ctg_cd])
+  children   category[]  @relation("CategoryToSubcategories")
 
-  prcategory prcategory[]
+  products   product[]   @relation("ProductCategory")
 }
 
 model header {
@@ -111,21 +108,11 @@ model pcl {
   pcl_cd         String    @id @db.Char(36)
   pcl_name       String    @db.VarChar(255)
   pcl_created_at DateTime
-  pcl_is_deleted Boolean?
+  pcl_is_deleted String    @db.Char(1)
   attrpcl        attrpcl[]
   product        product[]
 }
 
-model prcategory {
-  prc_cd   String   @id @db.Char(36)
-  ctg_cd   String   @db.Char(36)
-  pr_cd    String   @db.Char(36)
-  category category @relation(fields: [ctg_cd], references: [ctg_cd], map: "PrCategory_ctg_cd_fkey")
-  product  product  @relation(fields: [pr_cd], references: [pr_cd], map: "PrCategory_pr_cd_fkey")
-  
-  @@index([ctg_cd], map: "PrCategory_ctg_cd_fkey")
-  @@index([pr_cd], map: "PrCategory_pr_cd_fkey")
-}
 
 model product {
   pr_cd                   String       @id @db.Char(36)
@@ -141,15 +128,14 @@ model product {
   pr_series_cd            String?      @db.Char(36)
   pr_description          String?      @db.Text
   pcl_cd                  String?      @db.Char(36)
-  wks_cd                  String       @db.Char(36)
   asset                   asset[]
   attrvalue               attrvalue[]
-  prcategory              prcategory[]
   pcl                     pcl?         @relation(fields: [pcl_cd], references: [pcl_cd], map: "Product_pcl_cd_fkey")
-  workspace               workspace    @relation(fields: [wks_cd], references: [wks_cd], map: "Product_wks_cd_fkey")
-
+  categories              category[]   @relation("ProductCategory")
+  productworkspace        productworkspace[]
+  
   @@index([pcl_cd], map: "Product_pcl_cd_fkey")
-  @@index([wks_cd], map: "Product_wks_cd_fkey")
+ 
 }
 
 model user {
@@ -164,8 +150,10 @@ model user {
 model userworkspace {
   usw_cd         String    @id @db.Char(36)
   usw_created_at DateTime
+  usw_status     String    @db.Char(1)
   user_cd        String    @db.Char(36)
   wks_cd         String    @db.Char(36)
+  
   user           user      @relation(fields: [user_cd], references: [user_cd], map: "UserWorkspace_user_cd_fkey")
   workspace      workspace @relation(fields: [wks_cd], references: [wks_cd], map: "UserWorkspace_wks_cd_fkey")
 
@@ -180,7 +168,23 @@ model workspace {
   wks_created_by String          @db.Char(36)
   wks_created_at DateTime
   header         header[]
-  product        product[]
   userworkspace  userworkspace[]
-  attrpcl        attrpcl[]
+ 
+  productworkspace productworkspace[]
 }
+
+model productworkspace {
+  prw_cd    String   @id @db.Char(36)
+  pr_cd     String   @db.Char(36)
+  wks_cd    String   @db.Char(36)
+  added_at  DateTime @default(now())
+
+  product   product  @relation(fields: [pr_cd], references: [pr_cd])
+  workspace workspace @relation(fields: [wks_cd], references: [wks_cd])
+
+  @@index([pr_cd], map: "ProductWorkspace_pr_cd_fkey")
+  @@index([wks_cd], map: "ProductWorkspace_wks_cd_fkey")
+  @@unique([pr_cd, wks_cd]) // 同じ商品が同じWorkspaceに重複登録されないように
+}
+
+

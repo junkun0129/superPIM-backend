@@ -3,10 +3,35 @@ import { resultMessage } from "../config";
 import { prisma } from "../db";
 import { Request, RequestHandler, Response } from "express";
 import { generateRandomString, normalizeBoolean } from "../utils";
+export const getAttrsEntries: RequestHandler = async (req, res) => {
+  try {
+    const data = await prisma.attr.findMany({
+      select: {
+        atr_cd: true,
+        atr_name: true,
+      },
+    });
 
+    res.status(200).json({
+      data,
+      result: resultMessage.success,
+      message: "属性の取得に成功しました。",
+    });
+  } catch (err) {
+    res.status(500).json({
+      result: resultMessage.failed,
+      message: "属性の取得に失敗しました。",
+    });
+  }
+};
 export const getAttrList: RequestHandler = async (req, res) => {
   try {
-    const { pg, ps, or, kw } = req.params;
+    const { pg, ps, or, kw } = req.query as {
+      pg: string;
+      ps: string;
+      or: string;
+      kw: string;
+    };
     const offset: number = (Number(pg) - 1) * Number(ps);
     const pageSize: number = Number(ps);
     if (or !== "asc" && or !== "desc") {
@@ -19,21 +44,31 @@ export const getAttrList: RequestHandler = async (req, res) => {
     const orderBy: Prisma.attrOrderByWithRelationInput = {
       atr_name: or,
     };
-    const attrList = await prisma.attr.findMany({
-      skip: offset,
-      take: pageSize,
-      where: {
-        atr_name: {
-          contains: kw,
+    const [total, attrList] = await Promise.all([
+      prisma.attr.count({
+        where: {
+          atr_name: {
+            contains: kw,
+          },
         },
-      },
-      orderBy,
-    });
+      }),
+      prisma.attr.findMany({
+        skip: offset,
+        take: pageSize,
+        where: {
+          atr_name: {
+            contains: kw,
+          },
+        },
+        orderBy,
+      }),
+    ]);
 
     res.status(200).json({
       message: "属性一覧の取得に成功しました",
       result: resultMessage.success,
       data: attrList,
+      total,
     });
   } catch (error) {
     res.status(500).json({
@@ -45,7 +80,12 @@ export const getAttrList: RequestHandler = async (req, res) => {
 
 export const getPclList: RequestHandler = async (req, res) => {
   try {
-    const { pg, ps, or, kw } = req.params;
+    const { pg, ps, or, kw } = req.query as {
+      pg: string;
+      ps: string;
+      or: string;
+      kw: string;
+    };
     const offset: number = (Number(pg) - 1) * Number(ps);
     const pageSize: number = Number(ps);
     if (or !== "asc" && or !== "desc") {
@@ -58,21 +98,44 @@ export const getPclList: RequestHandler = async (req, res) => {
     const orderBy: Prisma.pclOrderByWithRelationInput = {
       pcl_name: or,
     };
-    const pclList = await prisma.pcl.findMany({
-      skip: offset,
-      take: pageSize,
-      where: {
-        pcl_name: {
-          contains: kw,
+
+    const [total, pclList] = await Promise.all([
+      prisma.pcl.count({
+        where: {
+          pcl_name: {
+            contains: kw,
+          },
         },
-      },
-      orderBy,
-    });
+        orderBy,
+      }),
+      prisma.pcl.findMany({
+        skip: offset,
+        take: pageSize,
+        where: {
+          pcl_name: {
+            contains: kw,
+          },
+        },
+        orderBy,
+        select: {
+          pcl_cd: true,
+          pcl_name: true,
+          pcl_created_at: true,
+          pcl_is_deleted: true,
+          _count: {
+            select: {
+              attrpcl: true,
+            },
+          },
+        },
+      }),
+    ]);
 
     res.status(200).json({
       message: "属性一覧の取得に成功しました",
       result: resultMessage.success,
       data: pclList,
+      total,
     });
   } catch (error) {
     res.status(500).json({
@@ -84,7 +147,7 @@ export const getPclList: RequestHandler = async (req, res) => {
 
 export const getPclAttrsList: RequestHandler = async (req, res) => {
   try {
-    const { pg, ps, or, kw, pcl, wks_cd } = req.params;
+    const { pg, ps, or, kw, pcl, wks } = req.params;
     const offset: number = (Number(pg) - 1) * Number(ps);
     const pageSize: number = Number(ps);
     if (or !== "asc" && or !== "desc") {
@@ -106,7 +169,6 @@ export const getPclAttrsList: RequestHandler = async (req, res) => {
           contains: kw,
         },
         pcl_cd: pcl,
-        wks_cd: wks_cd,
       },
       orderBy,
     });
@@ -120,6 +182,45 @@ export const getPclAttrsList: RequestHandler = async (req, res) => {
     res.status(500).json({
       message: resultMessage.failed,
       result: error,
+    });
+  }
+};
+
+export const getPclDetail: RequestHandler = async (req, res) => {
+  try {
+    const { pcl_cd } = req.params;
+    const pcl = await prisma.pcl.findUnique({
+      where: { pcl_cd },
+      select: {
+        pcl_cd: true,
+        pcl_name: true,
+        pcl_created_at: true,
+        attrpcl: {
+          select: {
+            atp_cd: true,
+            atp_order: true,
+            atp_is_common: true,
+            atp_is_show: true,
+            atp_alter_name: true,
+            attr: {
+              select: {
+                atr_name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.status(200).json({
+      data: pcl,
+      message: "商品分類詳細の取得に成功しました。",
+      result: resultMessage.success,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "商品分類詳細の取得に失敗しました。",
+      result: resultMessage.failed,
     });
   }
 };
@@ -149,16 +250,14 @@ export const createAttr: RequestHandler = async (req, res) => {
       } = attr;
 
       const atr_cd = generateRandomString(36);
-      const atr_is_with_unit_bool = normalizeBoolean(attr_is_with_unit);
-      const atr_not_null_bool = normalizeBoolean(atr_not_null);
 
       return {
         atr_cd,
         atr_name,
-        atr_is_delete: false,
-        atr_is_with_unit: atr_is_with_unit_bool,
+        atr_is_delete: "1",
+        atr_is_with_unit: attr_is_with_unit,
         atr_control_type,
-        atr_not_null: atr_not_null_bool,
+        atr_not_null,
         atr_max_length: Number(atr_max_length),
         atr_select_list,
         atr_default_value,
@@ -192,13 +291,14 @@ export const createPcl: RequestHandler = async (req, res) => {
         pcl_cd,
         pcl_name,
         pcl_created_at: new Date(),
+        pcl_is_deleted: "0",
       },
     });
 
     res.status(201).json({
       message: "属性の作成に成功しました",
       result: resultMessage.success,
-      data: newPcl,
+      data: { pcl_cd },
     });
   } catch (error) {
     res.status(500).json({
@@ -213,7 +313,6 @@ type AddAttrsToPclBody = {
   atr_cd: string;
   atp_is_show: string;
   atp_alter_name: string;
-  atp_alter_value: string;
   atp_is_common: string;
 }[];
 export const addAttrsToPcl: RequestHandler = async (req, res) => {
@@ -222,25 +321,17 @@ export const addAttrsToPcl: RequestHandler = async (req, res) => {
 
     const attrpcl_count = await prisma.attrpcl.count();
     const data: Prisma.attrpclCreateManyInput[] = body.map((attr) => {
-      const {
-        pcl_cd,
-        atr_cd,
-        atp_is_show,
-        atp_alter_name,
-        atp_alter_value,
-        atp_is_common,
-      } = attr;
+      const { pcl_cd, atr_cd, atp_is_show, atp_alter_name, atp_is_common } =
+        attr;
       const atp_cd = generateRandomString(36);
       return {
         atp_cd,
         atr_cd,
         pcl_cd,
-        wks_cd: "0",
         atp_order: attrpcl_count + 1,
-        atp_is_show: normalizeBoolean(atp_is_show),
+        atp_is_show: atp_is_show,
         atp_alter_name,
-        atp_alter_value,
-        atp_is_common: normalizeBoolean(atp_is_common),
+        atp_is_common: atp_is_common,
       };
     });
     await prisma.attrpcl.createMany({
@@ -261,8 +352,8 @@ export const addAttrsToPcl: RequestHandler = async (req, res) => {
 
 export const updateAttr: RequestHandler = async (req, res) => {
   try {
-    const { atr_cd } = req.params;
     const {
+      atr_cd,
       atr_name,
       attr_is_with_unit,
       atr_control_type,
@@ -277,13 +368,14 @@ export const updateAttr: RequestHandler = async (req, res) => {
       where: { atr_cd },
       data: {
         atr_name,
-        atr_is_with_unit: normalizeBoolean(attr_is_with_unit),
+        atr_is_with_unit: attr_is_with_unit,
         atr_control_type,
-        atr_not_null: normalizeBoolean(atr_not_null),
+        atr_not_null,
         atr_max_length: Number(atr_max_length),
         atr_select_list,
         atr_default_value,
         atr_unit,
+        atr_updated_at: new Date(),
       },
     });
 
@@ -300,34 +392,57 @@ export const updateAttr: RequestHandler = async (req, res) => {
   }
 };
 
+type UpdatePclBody = {
+  pcl_cd: string;
+  pcl_name: string;
+  attrs: {
+    atp_cd: string;
+    atp_alter_name: string;
+    atp_is_common: string;
+    atp_is_show: string;
+    atp_order: string;
+  }[];
+};
 export const updatePcl: RequestHandler = async (req, res) => {
   try {
-    const { pcl_cd } = req.params;
-    const { pcl_name } = req.body;
+    const { pcl_cd, pcl_name, attrs }: UpdatePclBody = req.body;
 
-    const updatedPcl = await prisma.pcl.update({
+    const atpPromises = attrs.map((item) =>
+      prisma.attrpcl.update({
+        where: { atp_cd: item.atp_cd },
+        data: {
+          atp_alter_name: item.atp_alter_name,
+          atp_is_common: item.atp_is_common,
+          atp_is_show: item.atp_is_show,
+          atp_order: Number(item.atp_order),
+        },
+      })
+    );
+
+    const pclPromise = prisma.pcl.update({
       where: { pcl_cd },
       data: {
         pcl_name,
       },
     });
 
+    await prisma.$transaction([pclPromise, ...atpPromises]);
+
     res.status(200).json({
-      message: "属性の更新に成功しました",
+      message: "商品分類の更新に成功しました",
       result: resultMessage.success,
-      data: updatedPcl,
     });
   } catch (error) {
     res.status(500).json({
-      message: resultMessage.failed,
-      result: error,
+      message: "商品分類の更新に成功しました",
+      result: resultMessage.failed,
     });
   }
 };
 
 export const deleteAttr: RequestHandler = async (req, res) => {
   try {
-    const { atr_cd } = req.params;
+    const { atr_cd } = req.body;
     await prisma.attr.delete({
       where: { atr_cd },
     });
@@ -346,34 +461,59 @@ export const deleteAttr: RequestHandler = async (req, res) => {
 
 export const deletePcl: RequestHandler = async (req, res) => {
   try {
-    const { pcl_cd } = req.params;
-    await prisma.pcl.delete({
-      where: { pcl_cd },
-    });
+    const { pcl_cd } = req.body;
 
-    res.status(200).json({
-      message: "属性の削除に成功しました",
-      result: resultMessage.success,
+    const products = await prisma.pcl.findUnique({
+      where: { pcl_cd },
+      select: {
+        product: true,
+      },
     });
+    if (!products || products.product.length < 1) {
+      await prisma.pcl.delete({
+        where: { pcl_cd },
+      });
+      res.status(200).json({
+        message: "属性の削除に成功しました",
+        result: resultMessage.success,
+      });
+    } else {
+      res.status(400).json({
+        message: "選択された商品分類の中に商品に紐づく商品分類があります。",
+        result: resultMessage.failed,
+      });
+    }
   } catch (error) {
     res.status(500).json({
-      message: resultMessage.failed,
-      result: error,
+      message: error,
+      result: resultMessage.failed,
     });
   }
 };
 
 export const deleteAttrPcl: RequestHandler = async (req, res) => {
   try {
-    const { atp_cd } = req.params;
-    await prisma.attrpcl.delete({
-      where: { atp_cd },
+    const { pcl_cd, atr_cd, atp_cd } = req.body;
+    const products = await prisma.product.findMany({
+      where: {
+        pcl_cd,
+      },
     });
 
-    res.status(200).json({
-      message: "属性の削除に成功しました",
-      result: resultMessage.success,
-    });
+    if (products.length > 0) {
+      res.status(400).json({
+        message: "商品分類に商品が紐づいています",
+        result: resultMessage.failed,
+      });
+    } else {
+      await prisma.attrpcl.delete({
+        where: { atp_cd },
+      });
+      res.status(200).json({
+        message: "属性の削除に成功しました",
+        result: resultMessage.success,
+      });
+    }
   } catch (error) {
     res.status(500).json({
       message: resultMessage.failed,
@@ -384,13 +524,14 @@ export const deleteAttrPcl: RequestHandler = async (req, res) => {
 
 export const updateAttrPcl: RequestHandler = async (req, res) => {
   try {
-    const { atp_cd } = req.params;
     const {
+      atp_cd,
       atp_is_show,
       atp_alter_name,
       atp_alter_value,
       atp_is_common,
     }: {
+      atp_cd: string;
       atp_is_show: string;
       atp_alter_name: string;
       atp_alter_value: string;
@@ -400,10 +541,9 @@ export const updateAttrPcl: RequestHandler = async (req, res) => {
     const updatedAttrPcl = await prisma.attrpcl.update({
       where: { atp_cd },
       data: {
-        atp_is_show: normalizeBoolean(atp_is_show),
+        atp_is_show: atp_is_show,
         atp_alter_name,
-        atp_alter_value,
-        atp_is_common: normalizeBoolean(atp_is_common),
+        atp_is_common: atp_is_common,
       },
     });
 

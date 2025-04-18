@@ -48,6 +48,14 @@ export const createWorkspace: RequestHandler = async (req, res) => {
         wks_desc,
         wks_created_at: new Date(),
         wks_created_by,
+        userworkspace: {
+          create: {
+            usw_cd: generateRandomString(36),
+            usw_created_at: new Date(),
+            usw_status: "0",
+            user_cd: wks_created_by,
+          },
+        },
       },
     });
 

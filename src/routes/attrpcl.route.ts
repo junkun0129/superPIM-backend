@@ -12,6 +12,8 @@ import {
   deletePcl,
   deleteAttrPcl,
   updateAttrPcl,
+  getAttrsEntries,
+  getPclDetail,
 } from "../controllers/attrpcl.controller"; // コントローラーのファイル名に合わせてパスを調整してください
 import { authMiddleware } from "../middleware/auth.middleware"; // 必要に応じて
 
@@ -20,19 +22,21 @@ const router = express.Router();
 // 属性関連
 router.get("/attr/list", authMiddleware, getAttrList);
 router.post("/attr/create", authMiddleware, createAttr);
-router.put("/attr/update", authMiddleware, updateAttr);
-router.delete("/attr/delete", authMiddleware, deleteAttr);
+router.post("/attr/update", authMiddleware, updateAttr);
+router.post("/attr/delete", authMiddleware, deleteAttr);
+router.get("/attr/entries", authMiddleware, getAttrsEntries);
 
 // pcl（属性カテゴリ）関連
 router.get("/pcl/list", authMiddleware, getPclList);
+router.get("/pcl/detail/:pcl_cd", authMiddleware, getPclDetail);
 router.post("/pcl/create", authMiddleware, createPcl);
-router.put("/pcl/update", authMiddleware, updatePcl);
-router.delete("/pcl/delete", authMiddleware, deletePcl);
+router.post("/pcl/update", authMiddleware, updatePcl);
+router.post("/pcl/delete", authMiddleware, deletePcl);
 
 // pcl-attr 関連（中間テーブル）
-router.get("/pclattrs", authMiddleware, getPclAttrsList);
+router.get("/pclattrs/list", authMiddleware, getPclAttrsList);
 router.post("/pclattrs/add", authMiddleware, addAttrsToPcl);
-router.put("/pclattrs/update", authMiddleware, updateAttrPcl);
-router.delete("/pclattrs/delete", authMiddleware, deleteAttrPcl);
+router.post("/pclattrs/update", authMiddleware, updateAttrPcl);
+router.post("/pclattrs/delete", authMiddleware, deleteAttrPcl);
 
 export default router;

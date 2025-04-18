@@ -4,7 +4,6 @@ import {
   deleteProduct,
   getFilterdProductsList,
   getProductsList,
-  updateProduct,
   updateProductStatus,
 } from "../controllers/product.controller";
 import express from "express";
@@ -13,7 +12,7 @@ const router = express.Router();
 
 router.get("/get", authMiddleware, getProductsList);
 router.get("/getfilter", authMiddleware, getFilterdProductsList);
-router.post("/udpate", authMiddleware, updateProduct);
+// router.post("/udpate", authMiddleware, updateProduct);
 router.post("/delete", authMiddleware, deleteProduct);
 router.post("/updatestats", authMiddleware, updateProductStatus);
 router.post("/create", authMiddleware, createProduct);

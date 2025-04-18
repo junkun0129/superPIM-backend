@@ -24,9 +24,12 @@ export const getProductCategories: RequestHandler = async (req, res) => {
   try {
     const { pr_cd } = req.params;
 
-    const links = await prisma.prcategory.findMany({
-      where: { pr_cd },
-      include: { category: true },
+    const links = await prisma.category.findMany({
+      where: {
+        products: {
+          some: { pr_cd },
+        },
+      },
     });
 
     res.status(200).json({
@@ -44,19 +47,19 @@ export const saveProductCategory: RequestHandler = async (req, res) => {
   try {
     const { pr_cd, ctg_cd } = req.body;
 
-    // 古いリンク削除
-    await prisma.prcategory.deleteMany({
-      where: { pr_cd },
-    });
+    // // 古いリンク削除
+    // await prisma.prcategory.deleteMany({
+    //   where: { pr_cd },
+    // });
 
-    // 新しいリンク追加
-    await prisma.prcategory.create({
-      data: {
-        prc_cd: crypto.randomUUID(),
-        pr_cd,
-        ctg_cd,
-      },
-    });
+    // // 新しいリンク追加
+    // await prisma.prcategory.create({
+    //   data: {
+    //     prc_cd: crypto.randomUUID(),
+    //     pr_cd,
+    //     ctg_cd,
+    //   },
+    // });
 
     res.status(200).json({
       message: "商品のカテゴリリンク保存に成功しました",

@@ -60,7 +60,6 @@ export const signUpController: RequestHandler = async (req, res) => {
     res.status(201).json({
       message: "ユーザーの登録に成功しました",
       result: "success",
-      data: formatUserResponse(newUser),
     });
   } catch (error) {
     res.status(500).json({

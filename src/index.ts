@@ -8,7 +8,7 @@ import categoryRoute from "./routes/category.route";
 import workspaceRoute from "./routes/workspace.route";
 import headerRoute from "./routes/header.route";
 import attrpclRoute from "./routes/attrpcl.route";
-
+import assetRoute from "./routes/asset.route";
 // Load environment variables
 dotenv.config();
 
@@ -28,6 +28,7 @@ app.use("/category", categoryRoute);
 app.use("/workspace", workspaceRoute);
 app.use("/header", headerRoute);
 app.use("/atp", attrpclRoute);
+app.use("/assets", assetRoute);
 
 // Start server
 server.listen(3000, () => {
