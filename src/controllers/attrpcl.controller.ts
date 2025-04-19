@@ -314,24 +314,30 @@ type AddAttrsToPclBody = {
   atp_is_show: string;
   atp_alter_name: string;
   atp_is_common: string;
+  atp_order: number;
 }[];
 export const addAttrsToPcl: RequestHandler = async (req, res) => {
   try {
     const body: AddAttrsToPclBody = req.body;
 
-    const attrpcl_count = await prisma.attrpcl.count();
     const data: Prisma.attrpclCreateManyInput[] = body.map((attr) => {
-      const { pcl_cd, atr_cd, atp_is_show, atp_alter_name, atp_is_common } =
-        attr;
+      const {
+        pcl_cd,
+        atr_cd,
+        atp_is_show,
+        atp_alter_name,
+        atp_is_common,
+        atp_order,
+      } = attr;
       const atp_cd = generateRandomString(36);
       return {
         atp_cd,
         atr_cd,
         pcl_cd,
-        atp_order: attrpcl_count + 1,
-        atp_is_show: atp_is_show,
+        atp_order,
+        atp_is_show,
         atp_alter_name,
-        atp_is_common: atp_is_common,
+        atp_is_common,
       };
     });
     await prisma.attrpcl.createMany({

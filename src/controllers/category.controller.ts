@@ -5,11 +5,10 @@ import { Request, RequestHandler, Response } from "express";
 export const getCategories: RequestHandler = async (req, res) => {
   try {
     const categories = await prisma.category.findMany({
-      where: { parent_cd: "" },
       include: { children: true },
     });
     res.status(200).json({
-      result: resultMessage,
+      result: resultMessage.success,
       data: categories,
     });
   } catch (err) {
@@ -74,33 +73,35 @@ export const saveProductCategory: RequestHandler = async (req, res) => {
 };
 export const createCategory: RequestHandler = async (req, res) => {
   try {
-    const { name, parent_cd } = req.body;
+    const { ctg_name, parent_cd } = req.body;
+    let newOrder: number;
 
     const siblings = await prisma.category.findMany({
-      where: { parent_cd },
+      where: { parent_cd: parent_cd === "" ? null : parent_cd },
       orderBy: { ctg_order: "desc" },
     });
 
-    const newOrder = (siblings[0]?.ctg_order ?? -1) + 1;
+    newOrder = siblings.length ? siblings.length + 1 : 0;
 
-    const newCategory = await prisma.category.create({
+    const i = await prisma.category.create({
       data: {
         ctg_cd: crypto.randomUUID(),
-        ctg_name: name,
+        ctg_name,
         ctg_desc: "",
         ctg_order: newOrder,
-        parent_cd,
+        parent_cd: parent_cd === "" ? null : parent_cd,
       },
     });
-
+    console.log(i);
     res.status(200).json({
       message: "カテゴリ作成に成功しました",
-      result: newCategory,
+      result: resultMessage.success,
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({
       message: "カテゴリ作成に失敗しました",
-      result: error,
+      result: resultMessage.failed,
     });
   }
 };
