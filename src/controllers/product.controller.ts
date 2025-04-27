@@ -355,11 +355,11 @@ export const createProduct: RequestHandler = async (req, res) => {
       pcl_cd: string;
       attrvalues: { atr_cd: string; atv_value: string }[];
     } = req.body;
-    console.log(req.body);
     const pr_cd = generateRandomString(36);
+    console.log(pr_cd);
     const newProduct = await prisma.product.create({
       data: {
-        pr_cd,
+        pr_cd: pr_cd,
         pr_name,
         pr_hinban,
         pr_description: "",
@@ -379,23 +379,21 @@ export const createProduct: RequestHandler = async (req, res) => {
             }
           : {},
         attrvalue: {
-          createMany: {
-            data: attrvalues.map((attr) => ({
-              atr_cd: attr.atr_cd,
-              atv_value: attr.atv_value,
-              atv_cd: generateRandomString(36),
-              pr_cd: pr_cd,
-            })),
-          },
+          create: attrvalues.map((attr) => ({
+            atr_cd: attr.atr_cd,
+            atv_value: attr.atv_value,
+            atv_cd: generateRandomString(36),
+          })),
         },
       },
     });
-
+    console.log(newProduct, "newproduct");
     res.status(201).json({
       result: resultMessage.success,
       data: newProduct,
     });
   } catch (err) {
+    console.log(err);
     res.status(500).json({
       message: "データベースとの接続に失敗しました",
       result: err,
@@ -441,5 +439,75 @@ export const checkProduct: RequestHandler = async (req, res) => {
     });
   } catch (err) {
     throw new Error("データベースとの接続に失敗しました");
+  }
+};
+
+export const getProductDetail: RequestHandler = async (req, res) => {
+  try {
+    const { pr_cd } = req.params;
+    const productData = await prisma.product.findUnique({
+      where: { pr_cd },
+      select: {
+        pr_cd: true,
+        pr_name: true,
+        pr_hinban: true,
+        pr_is_discontinued: true,
+        pr_acpt_status: true,
+        pr_labels: true,
+        pr_created_at: true,
+        pr_updated_at: true,
+        pr_is_series: true,
+        pr_description: true,
+        pcl_cd: true,
+        pcl: { select: { pcl_name: true } },
+        categories: { select: { ctg_cd: true } },
+      },
+    });
+
+    const attrvaluesData = await prisma.attrvalue.findMany({
+      where: {
+        pr_cd,
+      },
+      select: {
+        atv_cd: true,
+        atv_value: true,
+        attr: {
+          select: {
+            atr_cd: true,
+            atr_name: true,
+            atr_is_with_unit: true,
+            attrpcl: {
+              where: {
+                pcl_cd: productData?.pcl_cd,
+              },
+              select: {
+                atp_is_common: true,
+                atp_order: true,
+              },
+            },
+            atr_unit: true,
+            atr_control_type: true,
+            atr_select_list: true,
+            atr_max_length: true,
+            atr_not_null: true,
+          },
+        },
+      },
+    });
+
+    const data = {
+      product: productData,
+      attrvalues: attrvaluesData,
+    };
+    res.status(200).json({
+      result: resultMessage.success,
+      message: "商品詳細の取得に成功しました",
+      data,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "データベースとの接続に失敗しました",
+      result: resultMessage.failed,
+    });
   }
 };
