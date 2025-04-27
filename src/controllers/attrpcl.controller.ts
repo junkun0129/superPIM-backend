@@ -3,6 +3,43 @@ import { resultMessage } from "../config";
 import { prisma } from "../db";
 import { Request, RequestHandler, Response } from "express";
 import { generateRandomString, normalizeBoolean } from "../utils";
+
+export const getPclAttrEntries: RequestHandler = async (req, res) => {
+  try {
+    const { pcl } = req.query as { pcl: string };
+    const attrs = await prisma.attrpcl.findMany({
+      where: {
+        pcl_cd: pcl,
+      },
+      select: {
+        atp_is_common: true,
+        attr: {
+          select: {
+            atr_name: true,
+            atr_cd: true,
+            atr_default_value: true,
+            atr_is_with_unit: true,
+            atr_unit: true,
+            atr_max_length: true,
+            atr_not_null: true,
+            atr_select_list: true,
+            atr_control_type: true,
+          },
+        },
+      },
+    });
+    res.status(200).json({
+      data: attrs,
+      result: resultMessage.success,
+      message: "属性の取得に成功しました。",
+    });
+  } catch (err) {
+    res.status(500).json({
+      result: resultMessage.failed,
+      message: "属性の取得に失敗しました。",
+    });
+  }
+};
 export const getAttrsEntries: RequestHandler = async (req, res) => {
   try {
     const data = await prisma.attr.findMany({
@@ -74,6 +111,28 @@ export const getAttrList: RequestHandler = async (req, res) => {
     res.status(500).json({
       message: resultMessage.failed,
       result: error,
+    });
+  }
+};
+
+export const getPclEntries: RequestHandler = async (req, res) => {
+  try {
+    const pclList = await prisma.pcl.findMany({
+      select: {
+        pcl_cd: true,
+        pcl_name: true,
+      },
+    });
+
+    res.status(200).json({
+      message: "属性セット一覧の取得に成功しました",
+      result: resultMessage.success,
+      data: pclList,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: resultMessage.failed,
+      result: err,
     });
   }
 };
@@ -531,32 +590,46 @@ export const deleteAttrPcl: RequestHandler = async (req, res) => {
 export const updateAttrPcl: RequestHandler = async (req, res) => {
   try {
     const {
-      atp_cd,
-      atp_is_show,
-      atp_alter_name,
-      atp_alter_value,
-      atp_is_common,
+      pcl_cd,
+      pcl_name,
+      attrs,
     }: {
-      atp_cd: string;
-      atp_is_show: string;
-      atp_alter_name: string;
-      atp_alter_value: string;
-      atp_is_common: string;
+      pcl_cd: string;
+      pcl_name: string;
+      attrs: {
+        atp_cd: string;
+        atp_alter_name: string;
+        atp_is_show: string;
+        atp_is_common: string;
+        atp_order: number;
+      }[];
     } = req.body;
 
-    const updatedAttrPcl = await prisma.attrpcl.update({
-      where: { atp_cd },
+    await prisma.pcl.update({
+      where: { pcl_cd },
       data: {
-        atp_is_show: atp_is_show,
-        atp_alter_name,
-        atp_is_common: atp_is_common,
+        pcl_name,
+        attrpcl: {
+          update: attrs.map((item) => {
+            return {
+              where: {
+                atp_cd: item.atp_cd,
+              },
+              data: {
+                atp_alter_name: item.atp_alter_name,
+                atp_is_show: item.atp_is_show,
+                atp_is_common: item.atp_is_common,
+                atp_order: item.atp_order,
+              },
+            };
+          }),
+        },
       },
     });
 
     res.status(200).json({
       message: "属性の更新に成功しました",
       result: resultMessage.success,
-      data: updatedAttrPcl,
     });
   } catch (error) {
     res.status(500).json({

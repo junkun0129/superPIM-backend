@@ -23,3 +23,10 @@ export const getUserCd = (req: Request) => {
   const userId = decoded.user_cd;
   return userId;
 };
+
+export const normalizeBoolean = (value: any): boolean | null => {
+  if (value === 1 || value === "1") return true;
+  if (value === 0 || value === "0") return false;
+  if (value === true || value === false) return value;
+  return null;
+};

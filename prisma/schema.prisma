@@ -35,12 +35,12 @@ model attr {
   atr_name          String      @db.VarChar(255)
   atr_is_delete     String      @db.Char(1)
   atr_is_with_unit  String      @db.Char(1)
-  atr_control_type  String?     @db.VarChar(255)
+  atr_control_type  String      @db.VarChar(255)
   atr_not_null      String      @db.Char(1)
   atr_max_length    Int?
-  atr_select_list   String?     @db.Text
-  atr_default_value String?     @db.VarChar(255)
-  atr_unit          String?     @db.VarChar(255)
+  atr_select_list   String     @db.Text
+  atr_default_value String     @db.VarChar(255)
+  atr_unit          String     @db.VarChar(255)
   atr_created_at    DateTime
   atr_updated_at    DateTime?
   
@@ -117,20 +117,21 @@ model pcl {
 model product {
   pr_cd                   String       @id @db.Char(36)
   pr_name                 String       @db.VarChar(255)
-  pr_is_discontinued      Boolean?
+  pr_hinban               String       @db.VarChar(255)
+  pr_is_discontinued      String      @db.Char(1)
   pr_acpt_status          Int      @default(0)
   pr_acpt_last_updated_at DateTime?
-  pr_labels               String?      @db.Text
+  pr_labels               String      @db.Text
   pr_created_at           DateTime
   pr_updated_at           DateTime?
-  pr_is_deleted           Boolean?
-  pr_is_series            Boolean?
-  pr_series_cd            String?      @db.Char(36)
-  pr_description          String?      @db.Text
-  pcl_cd                  String?      @db.Char(36)
+  pr_is_deleted           String      @db.Char(1)
+  pr_is_series            String      @db.Char(1)
+  pr_series_cd            String      @db.Char(36)
+  pr_description          String      @db.Text
+  pcl_cd                  String      @db.Char(36)
   asset                   asset[]
   attrvalue               attrvalue[]
-  pcl                     pcl?         @relation(fields: [pcl_cd], references: [pcl_cd], map: "Product_pcl_cd_fkey")
+  pcl                     pcl         @relation(fields: [pcl_cd], references: [pcl_cd], map: "Product_pcl_cd_fkey")
   categories              category[]   @relation("ProductCategory")
   productworkspace        productworkspace[]
   

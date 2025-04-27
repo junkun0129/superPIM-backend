@@ -10,8 +10,8 @@ import express from "express";
 import { authMiddleware } from "../middleware/auth.middleware";
 const router = express.Router();
 
-router.get("/get", authMiddleware, getProductsList);
-router.get("/getfilter", authMiddleware, getFilterdProductsList);
+router.get("/list", authMiddleware, getProductsList);
+router.get("/filteredlist", authMiddleware, getFilterdProductsList);
 // router.post("/udpate", authMiddleware, updateProduct);
 router.post("/delete", authMiddleware, deleteProduct);
 router.post("/updatestats", authMiddleware, updateProductStatus);

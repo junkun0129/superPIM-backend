@@ -6,15 +6,25 @@ import { resultMessage } from "../config";
 
 export const getProductsList: RequestHandler = async (req, res) => {
   try {
-    const { is, pg, ps, ws, ob, or, kw, ct } = req.params;
+    const { is, pg, ps, ws, ob, or, kw, ct, id } = req.query as unknown as {
+      is: string;
+      pg: number;
+      ps: number;
+      ws: string;
+      ob: string;
+      or: string;
+      kw: string;
+      ct: string;
+      id: string;
+    };
+    console.log(id, "idd");
     const offset: number = (Number(pg) - 1) * Number(ps);
     const pageSize: number = Number(ps);
     const orderBy = {
       [String(ob)]: String(or),
     };
 
-    const isSeries = normalizeBoolean(is);
-    if (!isSeries) {
+    if (is !== "0" && is !== "1") {
       res.status(400).json({
         message: "isの値が不正です",
         result: resultMessage.failed,
@@ -22,13 +32,22 @@ export const getProductsList: RequestHandler = async (req, res) => {
       return;
     }
 
+    if (id !== "0" && id !== "1") {
+      res.status(400).json({
+        message: "idの値が不正です",
+        result: resultMessage.failed,
+      });
+      return;
+    }
+
     const baseWhere: Prisma.productWhereInput = {
-      pr_is_series: isSeries,
+      pr_is_series: is,
+      pr_is_deleted: id,
     };
 
     let kwWhere: Prisma.productWhereInput = {};
 
-    if (kw) {
+    if (!!kw) {
       kwWhere = {
         OR: [
           {
@@ -46,7 +65,7 @@ export const getProductsList: RequestHandler = async (req, res) => {
     }
 
     let wsWhere: Prisma.productWhereInput = {};
-    if (ws) {
+    if (!!ws) {
       wsWhere = {
         productworkspace: {
           some: {
@@ -57,7 +76,7 @@ export const getProductsList: RequestHandler = async (req, res) => {
     }
 
     let ctWhere: Prisma.productWhereInput = {};
-    if (ct) {
+    if (!!ct) {
       const categoryWithChildren = await prisma.category.findUnique({
         where: { ctg_cd: ct },
         include: {
@@ -87,18 +106,40 @@ export const getProductsList: RequestHandler = async (req, res) => {
       AND: [baseWhere, kwWhere, wsWhere, ctWhere],
     };
 
-    const products = await prisma.product.findMany({
+    const productsPromise = prisma.product.findMany({
       skip: offset,
       take: pageSize,
       where,
       orderBy,
+      select: {
+        pr_cd: true,
+        pr_hinban: true,
+        pr_name: true,
+        pr_is_discontinued: true,
+        pr_acpt_status: true,
+        pr_acpt_last_updated_at: true,
+        pr_labels: true,
+        pr_created_at: true,
+        pr_updated_at: true,
+        pcl: {
+          select: {
+            pcl_name: true,
+          },
+        },
+      },
     });
+    const totalPromise = prisma.product.count({
+      where,
+    });
+    const [data, total] = await Promise.all([productsPromise, totalPromise]);
 
     res.status(200).json({
       result: resultMessage.success,
-      data: products,
+      data,
+      total,
     });
   } catch (err) {
+    console.log(err);
     res.status(500).json({
       message: "データベースとの接続に失敗しました",
       result: err,
@@ -300,33 +341,43 @@ export const updateProductStatus: RequestHandler = async (req, res) => {
 export const createProduct: RequestHandler = async (req, res) => {
   try {
     const {
-      pr_name,
       pcl_cd,
-      pr_cd,
+      pr_name,
+      pr_hinban,
       ctg_cd,
       attrvalues,
+      is_series,
     }: {
+      is_series: string;
       pr_name: string;
-      pcl_cd: string;
+      pr_hinban: string;
       ctg_cd: string;
-      pr_cd: string;
+      pcl_cd: string;
       attrvalues: { atr_cd: string; atv_value: string }[];
     } = req.body;
-
+    console.log(req.body);
+    const pr_cd = generateRandomString(36);
     const newProduct = await prisma.product.create({
       data: {
+        pr_cd,
         pr_name,
+        pr_hinban,
         pr_description: "",
         pcl_cd,
-        pr_is_series: true,
+        pr_is_deleted: "0",
+        pr_series_cd: "",
+        pr_labels: "",
+        pr_is_discontinued: "0",
+        pr_is_series: is_series,
         pr_acpt_status: 0,
-        pr_cd,
         pr_created_at: new Date(),
-        categories: {
-          connect: {
-            ctg_cd,
-          },
-        },
+        categories: !!ctg_cd
+          ? {
+              connect: {
+                ctg_cd,
+              },
+            }
+          : {},
         attrvalue: {
           createMany: {
             data: attrvalues.map((attr) => ({
@@ -354,19 +405,17 @@ export const createProduct: RequestHandler = async (req, res) => {
 
 export const checkProduct: RequestHandler = async (req, res) => {
   try {
-    const {
-      pr_cd,
-      pr_name,
-    }: { pr_cd: string; pr_name: string; wks_cd: string } = req.body;
-    const doubleCd = await prisma.product.findMany({
+    const { pr_hinban, pr_name }: { pr_hinban: string; pr_name: string } =
+      req.body;
+    const doublehinban = await prisma.product.findMany({
       where: {
-        pr_cd,
+        pr_hinban,
       },
     });
 
-    if (doubleCd.length > 0) {
+    if (doublehinban.length > 0) {
       res.status(409).json({
-        message: "同じCDがすでに使われています",
+        message: "同じ商品コードがすでに使われています",
         result: resultMessage.failed,
       });
       return;
@@ -388,6 +437,7 @@ export const checkProduct: RequestHandler = async (req, res) => {
 
     res.status(200).json({
       result: resultMessage.success,
+      message: "重複ナシ",
     });
   } catch (err) {
     throw new Error("データベースとの接続に失敗しました");
