@@ -3,7 +3,8 @@ import { RequestHandler } from "express";
 import { generateRandomString, normalizeBoolean } from "../utils";
 import { Prisma } from "@prisma/client";
 import { resultMessage } from "../config";
-
+import fs from "fs";
+import path from "path";
 export const getProductsList: RequestHandler = async (req, res) => {
   try {
     const { is, pg, ps, ws, ob, or, kw, ct, id } = req.query as unknown as {
@@ -445,6 +446,10 @@ export const checkProduct: RequestHandler = async (req, res) => {
 export const getProductDetail: RequestHandler = async (req, res) => {
   try {
     const { pr_cd } = req.params;
+    const filePath = path.join(__dirname, "..", "..", "assets", "main.txt");
+    const content = fs.readFileSync(filePath, "utf-8");
+    const main_asb = content.trim();
+
     const productData = await prisma.product.findUnique({
       where: { pr_cd },
       select: {
@@ -495,14 +500,136 @@ export const getProductDetail: RequestHandler = async (req, res) => {
       },
     });
 
+    const asset = await prisma.asset.findUnique({
+      where: {
+        pr_cd: pr_cd,
+        pr_cd_asb_key: {
+          pr_cd,
+          asb_key: main_asb,
+        },
+      },
+      select: {
+        ast_img: true,
+      },
+    });
+
     const data = {
       product: productData,
       attrvalues: attrvaluesData,
+      asset,
     };
     res.status(200).json({
       result: resultMessage.success,
       message: "商品詳細の取得に成功しました",
       data,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: "データベースとの接続に失敗しました",
+      result: resultMessage.failed,
+    });
+  }
+};
+
+export const updateProductNameAndDesc: RequestHandler = async (req, res) => {
+  try {
+    const {
+      pr_cd,
+      pr_name,
+      pr_description,
+    }: {
+      pr_cd: string;
+      pr_name: string;
+      pr_description: string;
+    } = req.body;
+
+    await prisma.product.update({
+      where: {
+        pr_cd,
+      },
+      data: {
+        pr_name,
+        pr_description,
+      },
+    });
+    res.status(200).json({
+      result: resultMessage.success,
+      message: "商品の名前と説明の更新に成功しました",
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "データベースとの接続に失敗しました",
+      result: resultMessage.failed,
+    });
+  }
+};
+export const updateProductPcl: RequestHandler = async (req, res) => {
+  try {
+    const {
+      pr_cd,
+      pcl_cd,
+    }: {
+      pr_cd: string;
+      pcl_cd: string;
+    } = req.body;
+
+    await prisma.product.update({
+      where: {
+        pr_cd,
+      },
+      data: {
+        pcl_cd,
+      },
+    });
+    res.status(200).json({
+      result: resultMessage.success,
+      message: "商品の商品分類の更新に成功しました",
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "データベースとの接続に失敗しました",
+      result: resultMessage.failed,
+    });
+  }
+};
+export const updateProductCategory: RequestHandler = async (req, res) => {
+  try {
+    const {
+      pr_cd,
+      ctg_cd,
+    }: {
+      pr_cd: string;
+      ctg_cd: string;
+    } = req.body;
+
+    await prisma.$transaction(async (tx) => {
+      // ① 既存のカテゴリ関連を削除
+      await tx.product.update({
+        where: { pr_cd },
+        data: {
+          categories: {
+            set: [], // ←これで中間テーブルを空にできる！
+          },
+        },
+      });
+
+      if (!!ctg_cd) {
+        // ② 新しいカテゴリを紐付け
+        await tx.product.update({
+          where: { pr_cd },
+          data: {
+            categories: {
+              connect: [{ ctg_cd }],
+            },
+          },
+        });
+      }
+    });
+
+    res.status(200).json({
+      result: resultMessage.success,
+      message: "商品のカテゴリの更新に成功しました",
     });
   } catch (err) {
     res.status(500).json({

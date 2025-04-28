@@ -19,41 +19,98 @@ export const getAssetBoxes: RequestHandler = async (req, res) => {
   }
 };
 
-export const getAssets: RequestHandler = async (req, res) => {
+export const uploadProductAsset: RequestHandler = async (req, res) => {
   try {
-    const { asb_cd, pr_cd } = req.params;
-    const assets = await prisma.asset.findMany({
-      where: {
-        asb_cd,
-        pr_cd,
-      },
-    });
-    res.status(200).json({
-      data: assets,
-      result: resultMessage.success,
-    });
-  } catch (err) {
-    res.status(500).json({
-      message: err,
-      result: resultMessage.failed,
-    });
-  }
-};
-
-export const uploadAsset: RequestHandler = async (req, res) => {
-  try {
-    if (!req.file) {
-      res.status(400).json({ message: "画像ファイルが必要" });
+    const { pr_cd, type } = req.params;
+    const { im, asb } = req.query as { im: string; asb: string };
+    const file = req.file;
+    if (!pr_cd || !file) {
+      res.status(400).json({ error: "pr_cd または file がありません" });
       return;
     }
 
+    if (!im && !asb) {
+      res.status(400).json({ error: "必要な情報が含まれていません" });
+      return;
+    }
+
+    //保存先フォルダの処理
+    let targetAsb: string = asb;
+
+    if (im === "1") {
+      const txtFilePath = path.join(
+        __dirname,
+        "..",
+        "..",
+        "assets",
+        "main.txt"
+      );
+      const main_asb = fs.readFileSync(txtFilePath, "utf-8");
+
+      targetAsb = main_asb;
+    }
+
+    const saveFolderPath = path.join(
+      __dirname,
+      "..",
+      "..",
+      "assets",
+      targetAsb
+    );
+    await fs.promises.mkdir(saveFolderPath, { recursive: true });
+
+    //保存するファイルの処理
+    const ext = path.extname(file.originalname);
+    const saveFilePath = path.join(
+      __dirname,
+      "..",
+      "..",
+      "assets",
+      targetAsb,
+      `${pr_cd}${ext}`
+    );
+    await fs.promises.writeFile(saveFilePath, file.buffer);
+
+    const count = await prisma.asset.count({
+      where: {
+        pr_cd,
+        asb_key: targetAsb,
+      },
+    });
+    console.log(count);
+    if (count > 0) {
+      await prisma.asset.update({
+        where: {
+          pr_cd_asb_key: {
+            pr_cd,
+            asb_key: targetAsb,
+          },
+        },
+        data: {
+          ast_ext: ext,
+          ast_img: `${targetAsb}/${pr_cd}${ext}`,
+        },
+      });
+    } else {
+      await prisma.asset.create({
+        data: {
+          ast_cd: generateRandomString(36),
+          asb_key: targetAsb,
+          ast_type: type,
+          ast_ext: ext,
+          ast_img: `${targetAsb}/${pr_cd}${ext}`,
+          pr_cd,
+        },
+      });
+    }
     res.status(200).json({
       result: resultMessage.success,
-      message: "アップロード成功",
+      message: "アセットのアップロードに成功しました",
     });
   } catch (err) {
+    console.log(err);
     res.status(500).json({
-      message: err,
+      message: "アセットのアップロードに失敗しました",
       result: resultMessage.failed,
     });
   }
@@ -94,11 +151,12 @@ export const changeMainAssetBox: RequestHandler = async (req, res) => {
 
 export const createAssetBox: RequestHandler = async (req, res) => {
   try {
-    const { asb_name, asb_type } = req.body;
+    const { asb_name, asb_type, asb_key } = req.body;
     const asb_cd = generateRandomString(36);
     await prisma.assetbox.create({
       data: {
         asb_cd,
+        asb_key,
         asb_is_main: false,
         asb_type,
         asb_name,
@@ -164,38 +222,5 @@ export const deleteAsset: RequestHandler = async (req, res) => {
       result: resultMessage.failed,
       message: "アセットの削除に失敗しました",
     });
-  }
-};
-export const readAsset: RequestHandler = async (req, res) => {
-  try {
-    const { folder, filename } = req.params;
-    const im = req.query.im;
-
-    const baseDir = path.resolve(__dirname, "../assets");
-    const targetDir = path.resolve(baseDir, folder);
-    const targetFile = path.resolve(targetDir, filename);
-
-    if (!targetFile.startsWith(baseDir)) {
-      res.status(400).send("Invalid path");
-      return;
-    }
-
-    if (im === "true") {
-      const thumbnailPath = path.resolve(targetDir, "thumbs", filename);
-      if (fs.existsSync(thumbnailPath)) {
-        res.sendFile(thumbnailPath);
-      } else {
-        res.status(404).send("Thumbnail not found");
-      }
-      return;
-    }
-
-    if (fs.existsSync(targetFile)) {
-      res.sendFile(targetFile);
-    } else {
-      res.status(404).send("File not found");
-    }
-  } catch (err) {
-    res.status(500).send("Internal Server Error");
   }
 };

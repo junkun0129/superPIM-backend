@@ -7,24 +7,23 @@ import {
   deleteAsset,
   deleteAssetBox,
   getAssetBoxes,
-  getAssets,
-  readAsset,
-  uploadAsset,
+  uploadProductAsset,
 } from "../controllers/asset.controller";
+import multer from "multer";
+
+const upload = multer();
 const router = express.Router();
 
-router.get("/getast", authMiddleware, getAssets);
 router.get("/getasb", authMiddleware, getAssetBoxes);
 router.post("/changemain", authMiddleware, changeMainAssetBox);
 router.post("/createasb", authMiddleware, createAssetBox);
 router.post("/deleteasb", authMiddleware, deleteAssetBox);
 router.post("/deleteast", authMiddleware, deleteAsset);
-router.post("/read/:filename/:folder", authMiddleware, readAsset);
 router.post(
-  "/upload",
+  "/upload/:pr_cd/:type",
   authMiddleware,
-  assetUploadMiddleware.single("image"),
-  uploadAsset
+  upload.single("file"),
+  uploadProductAsset
 );
 
 export default router;

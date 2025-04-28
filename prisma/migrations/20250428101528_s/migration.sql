@@ -1,24 +1,27 @@
 -- CreateTable
 CREATE TABLE `asset` (
     `ast_cd` CHAR(36) NOT NULL,
-    `ast_type` VARCHAR(255) NULL,
-    `ast_img` TEXT NULL,
-    `ast_name` VARCHAR(255) NULL,
-    `asb_cd` CHAR(36) NULL,
-    `pr_cd` CHAR(36) NULL,
+    `ast_type` CHAR(1) NOT NULL,
+    `ast_img` TEXT NOT NULL,
+    `ast_ext` CHAR(4) NOT NULL,
+    `asb_key` VARCHAR(255) NOT NULL,
+    `pr_cd` CHAR(36) NOT NULL,
 
-    INDEX `Asset_asb_cd_fkey`(`asb_cd`),
+    INDEX `Asset_asb_key_fkey`(`asb_key`),
     INDEX `Asset_pr_cd_fkey`(`pr_cd`),
+    UNIQUE INDEX `Asset_pr_cd_asb_key_unique`(`pr_cd`, `asb_key`),
     PRIMARY KEY (`ast_cd`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `assetbox` (
     `asb_cd` CHAR(36) NOT NULL,
+    `asb_key` VARCHAR(255) NOT NULL,
     `asb_is_main` BOOLEAN NULL,
     `asb_name` VARCHAR(255) NOT NULL,
     `asb_type` VARCHAR(255) NULL,
 
+    UNIQUE INDEX `assetbox_asb_key_key`(`asb_key`),
     PRIMARY KEY (`asb_cd`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -28,12 +31,12 @@ CREATE TABLE `attr` (
     `atr_name` VARCHAR(255) NOT NULL,
     `atr_is_delete` CHAR(1) NOT NULL,
     `atr_is_with_unit` CHAR(1) NOT NULL,
-    `atr_control_type` VARCHAR(255) NULL,
+    `atr_control_type` VARCHAR(255) NOT NULL,
     `atr_not_null` CHAR(1) NOT NULL,
     `atr_max_length` INTEGER NULL,
-    `atr_select_list` TEXT NULL,
-    `atr_default_value` VARCHAR(255) NULL,
-    `atr_unit` VARCHAR(255) NULL,
+    `atr_select_list` TEXT NOT NULL,
+    `atr_default_value` VARCHAR(255) NOT NULL,
+    `atr_unit` VARCHAR(255) NOT NULL,
     `atr_created_at` DATETIME(3) NOT NULL,
     `atr_updated_at` DATETIME(3) NULL,
 
@@ -180,10 +183,10 @@ CREATE TABLE `_ProductCategory` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
-ALTER TABLE `asset` ADD CONSTRAINT `Asset_asb_cd_fkey` FOREIGN KEY (`asb_cd`) REFERENCES `assetbox`(`asb_cd`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `asset` ADD CONSTRAINT `Asset_asb_key_fkey` FOREIGN KEY (`asb_key`) REFERENCES `assetbox`(`asb_key`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `asset` ADD CONSTRAINT `Asset_pr_cd_fkey` FOREIGN KEY (`pr_cd`) REFERENCES `product`(`pr_cd`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `asset` ADD CONSTRAINT `Asset_pr_cd_fkey` FOREIGN KEY (`pr_cd`) REFERENCES `product`(`pr_cd`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `attrpcl` ADD CONSTRAINT `AttrPcl_atr_cd_fkey` FOREIGN KEY (`atr_cd`) REFERENCES `attr`(`atr_cd`) ON DELETE RESTRICT ON UPDATE CASCADE;

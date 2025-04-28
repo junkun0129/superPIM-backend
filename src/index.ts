@@ -2,6 +2,7 @@ import express from "express";
 import http from "http";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
 import authRoute from "./routes/auth.route";
 import productRoute from "./routes/product.route";
 import categoryRoute from "./routes/category.route";
@@ -15,7 +16,7 @@ dotenv.config();
 // Initialize express app and HTTP server
 const app = express();
 const server = http.createServer(app);
-
+app.use("", express.static(path.join(__dirname, "..", "assets")));
 // Middleware
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));

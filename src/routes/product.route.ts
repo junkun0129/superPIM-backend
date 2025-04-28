@@ -5,6 +5,9 @@ import {
   getFilterdProductsList,
   getProductDetail,
   getProductsList,
+  updateProductCategory,
+  updateProductNameAndDesc,
+  updateProductPcl,
   updateProductStatus,
 } from "../controllers/product.controller";
 import express from "express";
@@ -19,5 +22,9 @@ router.post("/delete", authMiddleware, deleteProduct);
 router.post("/updatestats", authMiddleware, updateProductStatus);
 router.post("/create", authMiddleware, createProduct);
 router.post("/check", authMiddleware, checkProduct);
+
+router.post("/update/namedesc", authMiddleware, updateProductNameAndDesc);
+router.post("/update/pcl", authMiddleware, updateProductPcl);
+router.post("/update/category", authMiddleware, updateProductCategory);
 
 export default router;
