@@ -11,8 +11,8 @@ const router = express.Router();
 
 router.get("/get", authMiddleware, getHeaders);
 router.post("/add", authMiddleware, addHeader);
-router.post("/delete", authMiddleware, deleteHeader);
+router.post("/delete/:hdr_cd", authMiddleware, deleteHeader);
 router.post("/updateorder", authMiddleware, updateHeaderOrder);
-router.post("/updatewith", authMiddleware, updateHeaderWidth);
+router.post("/updatewidth", authMiddleware, updateHeaderWidth);
 
 export default router;

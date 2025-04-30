@@ -97,17 +97,19 @@ model category {
 }
 
 model header {
-  hdr_cd    String    @id @db.Char(36)
-  attr_cd   String    @db.Char(36)
-  wks_cd    String    @db.Char(36)
-  hdr_width     String    @db.VarChar(4)
-  hdr_order    Int
-  attr      attr      @relation(fields: [attr_cd], references: [atr_cd], map: "Header_attr_cd_fkey")
-  workspace workspace @relation(fields: [wks_cd], references: [wks_cd], map: "Header_wks_cd_fkey")
+  hdr_cd    String     @id @db.Char(36)
+  attr_cd   String     @db.Char(36)
+  wks_cd    String?    @db.Char(36) 
+  hdr_width Int
+  hdr_order Int
+  
+  attr      attr       @relation(fields: [attr_cd], references: [atr_cd], map: "Header_attr_cd_fkey")
+  workspace workspace? @relation(fields: [wks_cd], references: [wks_cd], map: "Header_wks_cd_fkey") // ← ? をつける
   
   @@index([attr_cd], map: "Header_attr_cd_fkey")
   @@index([wks_cd], map: "Header_wks_cd_fkey")
 }
+
 
 model pcl {
   pcl_cd         String    @id @db.Char(36)

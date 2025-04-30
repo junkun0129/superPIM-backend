@@ -5,15 +5,36 @@ import { generateRandomString } from "../utils";
 
 export const getHeaders: RequestHandler = async (req, res) => {
   try {
-    const { wks_cd } = req.params;
-    const headers = await prisma.header.findMany({
-      where: { wks_cd },
+    const { wks } = req.query as { wks: string };
+
+    const headerPromise = prisma.header.findMany({
+      where: { wks_cd: !wks ? null : wks },
       orderBy: { hdr_order: "asc" },
+    });
+
+    const attrListPromise = prisma.attr.findMany({
+      select: {
+        atr_cd: true,
+        atr_name: true,
+      },
+    });
+
+    const [headers, attrList] = await Promise.all([
+      headerPromise,
+      attrListPromise,
+    ]);
+
+    let attrObject: {
+      [key: string]: string;
+    } = {};
+    attrList.forEach((item) => {
+      attrObject[item.atr_cd] = item.atr_name;
     });
 
     res.status(200).json({
       message: "ヘッダーの取得に成功しました",
-      result: headers,
+      result: resultMessage.success,
+      data: { headers, attrList: attrObject },
     });
   } catch (error) {
     res.status(500).json({
@@ -33,18 +54,16 @@ type UpdateHeadersBody = {
 export const addHeader: RequestHandler = async (req, res) => {
   try {
     const { wks_cd, atr_cd } = req.body;
+
     const headersCount = await prisma.header.count({
-      where: { wks_cd },
+      where: { wks_cd: !!wks_cd ? wks_cd : null },
     });
     await prisma.header.create({
       data: {
         hdr_cd: generateRandomString(36),
-        wks_cd,
         attr_cd: atr_cd,
         hdr_order: headersCount + 1,
-        hdr_width: "100", // Default width, adjust as needed
-        attr: { connect: { atr_cd } }, // Assuming a relation, adjust as needed
-        workspace: { connect: { wks_cd } }, // Assuming a relation, adjust as needed
+        hdr_width: 200, // Default width, adjust as needed
       },
     });
 
@@ -52,6 +71,7 @@ export const addHeader: RequestHandler = async (req, res) => {
       message: "ヘッダーの追加に成功しました",
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({
       message: "ヘッダーの更新に失敗しました",
       result: error,
@@ -90,8 +110,8 @@ export const deleteHeader: RequestHandler = async (req, res) => {
 
 export const updateHeaderOrder: RequestHandler = async (req, res) => {
   try {
-    const { active_cd, over_cd } = req.body;
-
+    const { active_cd, over_cd, wks_cd: wksProps } = req.body;
+    const wks_cd = !!wksProps ? wksProps : null;
     if (!active_cd || !over_cd) {
       res.status(400).json({
         message: "active_cd と over_cd の両方が必要です",
@@ -100,8 +120,8 @@ export const updateHeaderOrder: RequestHandler = async (req, res) => {
     }
 
     const [activeHeader, overHeader] = await Promise.all([
-      prisma.header.findUnique({ where: { hdr_cd: active_cd } }),
-      prisma.header.findUnique({ where: { hdr_cd: over_cd } }),
+      prisma.header.findUnique({ where: { hdr_cd: active_cd, wks_cd } }),
+      prisma.header.findUnique({ where: { hdr_cd: over_cd, wks_cd } }),
     ]);
 
     if (!activeHeader) {
@@ -132,7 +152,6 @@ export const updateHeaderOrder: RequestHandler = async (req, res) => {
       // 上に移動：newOrder ～ activeOrder - 1 を +1
       affectedHeaders = await prisma.header.findMany({
         where: {
-          wks_cd: activeHeader.wks_cd,
           hdr_cd: { not: activeHeader.hdr_cd },
           hdr_order: {
             gte: newOrder,
@@ -157,7 +176,6 @@ export const updateHeaderOrder: RequestHandler = async (req, res) => {
       // 下に移動：activeOrder + 1 ～ newOrder を -1
       affectedHeaders = await prisma.header.findMany({
         where: {
-          wks_cd: activeHeader.wks_cd,
           hdr_cd: { not: activeHeader.hdr_cd },
           hdr_order: {
             gt: activeHeader.hdr_order,
@@ -194,10 +212,11 @@ export const updateHeaderOrder: RequestHandler = async (req, res) => {
 
 export const updateHeaderWidth: RequestHandler = async (req, res) => {
   try {
-    const { hdr_cd, hdr_width } = req.body;
+    const { hdr_cd, hdr_width, wks_cd } = req.body;
     await prisma.header.update({
       where: {
         hdr_cd,
+        wks_cd: !!wks_cd ? wks_cd : null,
       },
       data: {
         hdr_width,

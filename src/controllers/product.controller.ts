@@ -127,6 +127,15 @@ export const getProductsList: RequestHandler = async (req, res) => {
             pcl_name: true,
           },
         },
+        attrvalue:
+          is === "0"
+            ? {
+                select: {
+                  atv_value: true,
+                  atr_cd: true,
+                },
+              }
+            : {},
       },
     });
     const totalPromise = prisma.product.count({
