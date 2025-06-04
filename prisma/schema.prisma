@@ -1,0 +1,198 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model asset {
+  ast_cd    String     @id @db.Char(36)
+  ast_type  String     @db.Char(1)
+  ast_img   String     @db.Text
+  ast_ext   String     @db.Char(4)
+  asb_key   String     @db.VarChar(255)
+  pr_cd     String     @db.Char(36)
+  
+  assetbox  assetbox?  @relation(fields: [asb_key], references: [asb_key], map: "Asset_asb_key_fkey")
+  product   product?   @relation(fields: [pr_cd], references: [pr_cd], map: "Asset_pr_cd_fkey")
+
+  @@index([asb_key], map: "Asset_asb_key_fkey")
+  @@index([pr_cd], map: "Asset_pr_cd_fkey")
+  
+  // pr_cd と asb_cd の組み合わせをユニークにする
+  @@unique([pr_cd, asb_key], map: "Asset_pr_cd_asb_key_unique")
+}
+
+model assetbox {
+  asb_cd      String     @id @db.Char(36)
+  asb_key     String     @unique @db.VarChar(255)
+  asb_is_main Boolean?
+  asb_name    String     @db.VarChar(255)
+  asb_type    String?    @db.VarChar(255)
+  asset       asset[]
+ 
+}
+
+model attr {
+  atr_cd            String      @id @db.Char(36)
+  atr_name          String      @db.VarChar(255)
+  atr_is_delete     String      @db.Char(1)
+  atr_is_with_unit  String      @db.Char(1)
+  atr_control_type  String      @db.VarChar(255)
+  atr_not_null      String      @db.Char(1)
+  atr_max_length    Int?
+  atr_select_list   String     @db.Text
+  atr_default_value String     @db.VarChar(255)
+  atr_unit          String     @db.VarChar(255)
+  atr_created_at    DateTime
+  atr_updated_at    DateTime?
+  
+  attrpcl           attrpcl[]
+  attrvalue         attrvalue[]
+  header            header[]
+}
+
+model attrpcl {
+  atp_cd            String   @id @db.Char(36)
+  atp_order         Int
+  atp_is_show       String   @db.Char(1)
+  atp_alter_name    String?  @db.VarChar(255)
+  atp_is_common     String   @db.Char(1)
+  atr_cd            String   @db.Char(36)
+  pcl_cd            String   @db.Char(36)
+  attr              attr     @relation(fields: [atr_cd], references: [atr_cd], map: "AttrPcl_atr_cd_fkey")
+  pcl               pcl      @relation(fields: [pcl_cd], references: [pcl_cd], map: "AttrPcl_pcl_cd_fkey")
+
+
+  @@index([atr_cd], map: "AttrPcl_atr_cd_fkey")
+  @@index([pcl_cd], map: "AttrPcl_pcl_cd_fkey")
+}
+
+model attrvalue {
+  atv_cd    String  @id @db.Char(36)
+  atv_value String? @db.Text
+  pr_cd     String  @db.Char(36)
+  atr_cd    String  @db.Char(36)
+  attr      attr    @relation(fields: [atr_cd], references: [atr_cd], map: "AttrValue_atr_cd_fkey")
+  product   product @relation(fields: [pr_cd], references: [pr_cd], map: "AttrValue_pr_cd_fkey")
+
+  @@index([atr_cd], map: "AttrValue_atr_cd_fkey")
+  @@index([pr_cd], map: "AttrValue_pr_cd_fkey")
+}
+
+model category {
+  ctg_cd     String       @id @db.Char(36)
+  ctg_name   String       @db.VarChar(255)
+  ctg_desc   String?      @db.Text
+  ctg_order  Int?
+  parent_cd  String?      @db.Char(36)
+
+  // 自己参照のリレーション
+  parent     category?   @relation("CategoryToSubcategories", fields: [parent_cd], references: [ctg_cd])
+  children   category[]  @relation("CategoryToSubcategories")
+
+  products   product[]   @relation("ProductCategory")
+}
+
+model header {
+  hdr_cd    String     @id @db.Char(36)
+  attr_cd   String     @db.Char(36)
+  wks_cd    String?    @db.Char(36) 
+  hdr_width Int
+  hdr_order Int
+  
+  attr      attr       @relation(fields: [attr_cd], references: [atr_cd], map: "Header_attr_cd_fkey")
+  workspace workspace? @relation(fields: [wks_cd], references: [wks_cd], map: "Header_wks_cd_fkey") // ← ? をつける
+  
+  @@index([attr_cd], map: "Header_attr_cd_fkey")
+  @@index([wks_cd], map: "Header_wks_cd_fkey")
+}
+
+
+model pcl {
+  pcl_cd         String    @id @db.Char(36)
+  pcl_name       String    @db.VarChar(255)
+  pcl_created_at DateTime
+  pcl_is_deleted String    @db.Char(1)
+  attrpcl        attrpcl[]
+  product        product[]
+}
+
+
+model product {
+  pr_cd                   String       @id @db.Char(36)
+  pr_name                 String       @db.VarChar(255)
+  pr_hinban               String       @db.VarChar(255)
+  pr_is_discontinued      String      @db.Char(1)
+  pr_acpt_status          Int      @default(0)
+  pr_acpt_last_updated_at DateTime?
+  pr_labels               String      @db.Text
+  pr_created_at           DateTime
+  pr_updated_at           DateTime?
+  pr_is_deleted           String      @db.Char(1)
+  pr_is_series            String      @db.Char(1)
+  pr_series_cd            String      @db.Char(36)
+  pr_description          String      @db.Text
+  pcl_cd                  String      @db.Char(36)
+  asset                   asset[]
+  attrvalue               attrvalue[]
+  pcl                     pcl         @relation(fields: [pcl_cd], references: [pcl_cd], map: "Product_pcl_cd_fkey")
+  categories              category[]   @relation("ProductCategory")
+  productworkspace        productworkspace[]
+  
+  @@index([pcl_cd], map: "Product_pcl_cd_fkey")
+ 
+}
+
+model user {
+  user_cd       String          @id @db.Char(36)
+  user_email    String          @db.VarChar(255)
+  user_groups   String?         @db.VarChar(255)
+  user_name     String          @db.VarChar(255)
+  user_password String          @db.VarChar(255)
+  userworkspace userworkspace[]
+}
+
+model userworkspace {
+  usw_cd         String    @id @db.Char(36)
+  usw_created_at DateTime
+  usw_status     String    @db.Char(1)
+  user_cd        String    @db.Char(36)
+  wks_cd         String    @db.Char(36)
+  
+  user           user      @relation(fields: [user_cd], references: [user_cd], map: "UserWorkspace_user_cd_fkey")
+  workspace      workspace @relation(fields: [wks_cd], references: [wks_cd], map: "UserWorkspace_wks_cd_fkey")
+
+  @@index([user_cd], map: "UserWorkspace_user_cd_fkey")
+  @@index([wks_cd], map: "UserWorkspace_wks_cd_fkey")
+}
+
+model workspace {
+  wks_cd         String          @id @db.Char(36)
+  wks_name       String          @db.VarChar(255)
+  wks_desc       String?         @db.Text
+  wks_created_by String          @db.Char(36)
+  wks_created_at DateTime
+  header         header[]
+  userworkspace  userworkspace[]
+ 
+  productworkspace productworkspace[]
+}
+
+model productworkspace {
+  prw_cd    String   @id @db.Char(36)
+  pr_cd     String   @db.Char(36)
+  wks_cd    String   @db.Char(36)
+  added_at  DateTime @default(now())
+
+  product   product  @relation(fields: [pr_cd], references: [pr_cd])
+  workspace workspace @relation(fields: [wks_cd], references: [wks_cd])
+
+  @@index([pr_cd], map: "ProductWorkspace_pr_cd_fkey")
+  @@index([wks_cd], map: "ProductWorkspace_wks_cd_fkey")
+  @@unique([pr_cd, wks_cd]) // 同じ商品が同じWorkspaceに重複登録されないように
+}
+
+
