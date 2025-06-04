@@ -40,6 +40,60 @@ export const getPclAttrEntries: RequestHandler = async (req, res) => {
     });
   }
 };
+
+export const getAttrsForPrFilter: RequestHandler = async (req, res) => {
+  const { selectedPclCd, keyword } = req.query as {
+    selectedPclCd?: string;
+    keyword?: string;
+  };
+
+  let keywordWhere: Prisma.attrWhereInput = {};
+  if (keyword) {
+    keywordWhere = {
+      atr_name: {
+        contains: keyword,
+      },
+    };
+  }
+
+  let selectedPclCdWhere: Prisma.attrWhereInput = {};
+  if (selectedPclCd) {
+    selectedPclCdWhere = {
+      attrpcl: {
+        some: {
+          pcl_cd: selectedPclCd,
+        },
+      },
+    };
+  }
+  const whereCondition: Prisma.attrWhereInput = {
+    AND: [keywordWhere, selectedPclCdWhere],
+  };
+  try {
+    const attrs = await prisma.attr.findMany({
+      where: whereCondition,
+      select: {
+        atr_cd: true,
+        atr_name: true,
+        atr_control_type: true,
+        atr_max_length: true,
+        atr_select_list: true,
+      },
+    });
+
+    res.status(200).json({
+      data: attrs,
+      result: resultMessage.success,
+      message: "属性の取得に成功しました。",
+    });
+  } catch (err) {
+    res.status(500).json({
+      result: resultMessage.failed,
+      message: "属性の取得に失敗しました。",
+    });
+  }
+};
+
 export const getAttrsEntries: RequestHandler = async (req, res) => {
   try {
     const data = await prisma.attr.findMany({

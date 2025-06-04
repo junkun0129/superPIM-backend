@@ -1,24 +1,45 @@
 import { prisma } from "../db";
-import { RequestHandler } from "express";
+import { Request, RequestHandler, Response } from "express";
 import { generateRandomString, normalizeBoolean } from "../utils";
 import { Prisma } from "@prisma/client";
-import { resultMessage } from "../config";
+import { operands, resultMessage } from "../config";
 import fs from "fs";
 import path from "path";
-export const getProductsList: RequestHandler = async (req, res) => {
+type AttrFilter = {
+  attr_cd: string;
+  operand: (typeof operands)[keyof typeof operands];
+  value: string;
+};
+const getProductList = async ({
+  is,
+  pg,
+  ps,
+  ws,
+  ob,
+  or,
+  kw,
+  ct,
+  id,
+  isFiltered = false,
+  req,
+  res,
+  attrFilters = [],
+}: {
+  is: string;
+  pg: number;
+  ps: number;
+  ws: string;
+  ob: string;
+  or: string;
+  kw: string;
+  ct: string;
+  id: string;
+  isFiltered?: boolean;
+  req: Request;
+  res: Response;
+  attrFilters?: AttrFilter[];
+}) => {
   try {
-    const { is, pg, ps, ws, ob, or, kw, ct, id } = req.query as unknown as {
-      is: string;
-      pg: number;
-      ps: number;
-      ws: string;
-      ob: string;
-      or: string;
-      kw: string;
-      ct: string;
-      id: string;
-    };
-    console.log(id, "idd");
     const offset: number = (Number(pg) - 1) * Number(ps);
     const pageSize: number = Number(ps);
     const orderBy = {
@@ -102,9 +123,76 @@ export const getProductsList: RequestHandler = async (req, res) => {
         },
       };
     }
+    let attrWhere = {} as Prisma.productWhereInput;
+
+    if (isFiltered && attrFilters.length > 0) {
+      attrWhere = {
+        attrvalue: {
+          some: {
+            AND: attrFilters.map((filter) => {
+              const { attr_cd, operand, value } = filter;
+              switch (operand) {
+                case operands.greaterThan:
+                  return {
+                    atr_cd: attr_cd,
+                    atv_value: {
+                      gt: value,
+                    },
+                  };
+                case operands.lessThan:
+                  return {
+                    atr_cd: attr_cd,
+                    atv_value: {
+                      lt: value,
+                    },
+                  };
+                case operands.greaterThanOrEqual:
+                  return {
+                    atr_cd: attr_cd,
+                    atv_value: {
+                      gte: value,
+                    },
+                  };
+                case operands.lessThanOrEqual:
+                  return {
+                    atr_cd: attr_cd,
+                    atv_value: {
+                      lte: value,
+                    },
+                  };
+                case operands.equal:
+                  return {
+                    atr_cd: attr_cd,
+                    atv_value: value,
+                  };
+                case operands.notEqual:
+                  return {
+                    atr_cd: attr_cd,
+                    atv_value: {
+                      not: value,
+                    },
+                  };
+                case operands.contains:
+                  return {
+                    atr_cd: attr_cd,
+                  };
+                case operands.notContains:
+                  return {
+                    atr_cd: {
+                      not: attr_cd,
+                    },
+                  };
+                default:
+                  return {};
+              }
+            }),
+          },
+        },
+      };
+    }
 
     const where: Prisma.productWhereInput = {
-      AND: [baseWhere, kwWhere, wsWhere, ctWhere],
+      AND: [baseWhere, kwWhere, wsWhere, ctWhere, attrWhere],
     };
 
     const productsPromise = prisma.product.findMany({
@@ -157,144 +245,50 @@ export const getProductsList: RequestHandler = async (req, res) => {
   }
 };
 
+export const getProductsList: RequestHandler = async (req, res) => {
+  const { is, pg, ps, ws, ob, or, kw, ct, id } = req.query as unknown as {
+    is: string;
+    pg: number;
+    ps: number;
+    ws: string;
+    ob: string;
+    or: string;
+    kw: string;
+    ct: string;
+    id: string;
+  };
+  await getProductList({ is, pg, ps, ws, ob, or, kw, ct, id, req, res });
+};
+
 export const getFilterdProductsList: RequestHandler = async (req, res) => {
-  try {
-    const { is, pg, ps, ws, ob, or, kw, ct } = req.params;
-    const {
-      cons,
-    }: {
-      cons: { atr: string; kw: string; con: string; op: string }[];
-    } = req.body;
+  const { is, pg, ps, ws, ob, or, kw, ct, id } = req.query as unknown as {
+    is: string;
+    pg: number;
+    ps: number;
+    ws: string;
+    ob: string;
+    or: string;
+    kw: string;
+    ct: string;
+    id: string;
+  };
 
-    const offset: number = (Number(pg) - 1) * Number(ps);
-    const pageSize: number = Number(ps);
-    const orderBy = {
-      [ob]: or,
-    };
-
-    const isSeries = normalizeBoolean(is);
-    if (!isSeries) {
-      res.status(400).json({
-        message: "isの値が不正です",
-        result: resultMessage.failed,
-      });
-      return;
-    }
-
-    const baseWhere: Prisma.productWhereInput = {
-      pr_is_series: isSeries,
-    };
-
-    let kwWhere: Prisma.productWhereInput = {};
-
-    if (kw) {
-      kwWhere = {
-        OR: [
-          {
-            pr_name: {
-              contains: kw,
-            },
-          },
-          {
-            pr_cd: {
-              contains: kw,
-            },
-          },
-        ],
-      };
-    }
-
-    let wsWhere: Prisma.productWhereInput = {};
-    if (ws) {
-      wsWhere = {
-        productworkspace: {
-          some: {
-            wks_cd: ws,
-          },
-        },
-      };
-    }
-
-    let ctWhere: Prisma.productWhereInput = {};
-    if (ct) {
-      const categoryWithChildren = await prisma.category.findUnique({
-        where: { ctg_cd: ct },
-        include: {
-          children: true, // 子カテゴリを含む
-        },
-      });
-      let allCategoryIds = [ct];
-      if (categoryWithChildren) {
-        allCategoryIds = [
-          ct,
-          ...categoryWithChildren.children.map((c) => c.ctg_cd),
-        ];
-      }
-
-      ctWhere = {
-        categories: {
-          some: {
-            ctg_cd: {
-              in: allCategoryIds,
-            },
-          },
-        },
-      };
-    }
-
-    const consWhere: Prisma.productWhereInput = {};
-
-    consWhere.AND = cons
-      .filter((con) => con.con === "and")
-      .map((con) => {
-        return {
-          attrValues: {
-            some: {
-              atr_cd: con.atr,
-              atv_value: {
-                contains: con.kw,
-              },
-            },
-          },
-        };
-      }) as any;
-
-    consWhere.OR = cons
-      .filter((con) => con.con === "or")
-      .map((con) => {
-        return {
-          attrValues: {
-            some: {
-              atr_cd: con.atr,
-              atv_value: {
-                contains: con.kw,
-              },
-            },
-          },
-        };
-      }) as any;
-
-    const where: Prisma.productWhereInput = {
-      AND: [baseWhere, kwWhere, wsWhere, ctWhere, consWhere],
-    };
-
-    const products = await prisma.product.findMany({
-      skip: offset,
-      take: pageSize,
-      where,
-      orderBy,
-    });
-
-    res.status(200).json({
-      result: resultMessage.success,
-      data: products,
-    });
-  } catch (err) {
-    res.status(500).json({
-      message: "データベースとの接続に失敗しました",
-      result: resultMessage.failed,
-    });
-  }
+  const attrFilters: AttrFilter[] = req.body;
+  await getProductList({
+    is,
+    pg,
+    ps,
+    ws,
+    ob,
+    or,
+    kw,
+    ct,
+    id,
+    req,
+    res,
+    isFiltered: true,
+    attrFilters,
+  });
 };
 
 export const deleteProduct: RequestHandler = async (req, res) => {

@@ -21,3 +21,16 @@ export const resultMessage = {
   forbidden: "forbidden",
   serverError: "server error",
 };
+
+export const operands = {
+  greaterThan: "0",
+  lessThan: "1",
+  greaterThanOrEqual: "2",
+  lessThanOrEqual: "3",
+  equal: "4",
+  notEqual: "5",
+  contains: "6",
+  notContains: "7",
+  startsWith: "8",
+  endsWith: "9",
+};
