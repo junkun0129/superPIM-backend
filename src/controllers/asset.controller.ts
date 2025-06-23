@@ -74,31 +74,28 @@ export const uploadProductAsset: RequestHandler = async (req, res) => {
     const count = await prisma.asset.count({
       where: {
         pr_cd,
-        asb_key: targetAsb,
+        asb_cd: targetAsb,
       },
     });
-    console.log(count);
     if (count > 0) {
       await prisma.asset.update({
         where: {
-          pr_cd_asb_key: {
+          pr_cd_asb_cd: {
             pr_cd,
-            asb_key: targetAsb,
+            asb_cd: targetAsb,
           },
         },
         data: {
           ast_ext: ext,
-          ast_img: `${targetAsb}/${pr_cd}${ext}`,
         },
       });
     } else {
       await prisma.asset.create({
         data: {
           ast_cd: generateRandomString(36),
-          asb_key: targetAsb,
+          asb_cd: targetAsb,
           ast_type: type,
           ast_ext: ext,
-          ast_img: `${targetAsb}/${pr_cd}${ext}`,
           pr_cd,
         },
       });
@@ -115,28 +112,25 @@ export const uploadProductAsset: RequestHandler = async (req, res) => {
     });
   }
 };
+export const getMainAssetBoxKey: RequestHandler = async (req, res) => {
+  try {
+    const mainKey = fs.readFileSync("assets/main.txt", "utf8");
 
+    res.status(200).json({
+      result: resultMessage.success,
+      data: mainKey,
+    });
+  } catch (err) {
+    res.status(500).json({
+      result: resultMessage.failed,
+      message: "メインアセットボックス名の取得に失敗しました",
+    });
+  }
+};
 export const changeMainAssetBox: RequestHandler = async (req, res) => {
   try {
     const { asb_cd } = req.body;
     fs.writeFileSync("assets/main.txt", asb_cd, "utf8");
-    await prisma.assetbox.updateMany({
-      where: {
-        asb_is_main: true,
-      },
-      data: {
-        asb_is_main: false,
-      },
-    });
-
-    await prisma.assetbox.update({
-      where: {
-        asb_cd,
-      },
-      data: {
-        asb_is_main: true,
-      },
-    });
 
     res.status(200).json({
       result: resultMessage.success,
@@ -156,8 +150,6 @@ export const createAssetBox: RequestHandler = async (req, res) => {
     await prisma.assetbox.create({
       data: {
         asb_cd,
-        asb_key,
-        asb_is_main: false,
         asb_type,
         asb_name,
       },
@@ -183,7 +175,8 @@ export const deleteAssetBox: RequestHandler = async (req, res) => {
 
     if (!target) throw new Error();
 
-    if (target.asb_is_main) {
+    const mainAssetBoxKey = fs.readFileSync("assets/main.txt", "utf8");
+    if (target.asb_cd === mainAssetBoxKey) {
       res.status(400).json({
         result: resultMessage.failed,
         message: "メインに指定されているアセットボックスは削除できません",

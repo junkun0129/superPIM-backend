@@ -61,6 +61,7 @@ const getProductList = async ({
       });
       return;
     }
+    const mainAssetBoxKey = fs.readFileSync("assets/main.txt", "utf8");
 
     const baseWhere: Prisma.productWhereInput = {
       pr_is_series: is,
@@ -215,6 +216,11 @@ const getProductList = async ({
             pcl_name: true,
           },
         },
+        asset: {
+          select: {
+            ast_ext: true,
+          },
+        },
         attrvalue:
           is === "0"
             ? {
@@ -234,10 +240,10 @@ const getProductList = async ({
     res.status(200).json({
       result: resultMessage.success,
       data,
+      mainAssetBoxKey,
       total,
     });
   } catch (err) {
-    console.log(err);
     res.status(500).json({
       message: "データベースとの接続に失敗しました",
       result: err,
@@ -294,6 +300,12 @@ export const getFilterdProductsList: RequestHandler = async (req, res) => {
 export const deleteProduct: RequestHandler = async (req, res) => {
   try {
     const { cd }: { cd: string } = req.body;
+    console.log(cd, "kokokokorerrererereer");
+    await prisma.asset.deleteMany({
+      where: {
+        pr_cd: cd,
+      },
+    });
     await prisma.product.delete({
       where: {
         pr_cd: cd,
@@ -304,6 +316,7 @@ export const deleteProduct: RequestHandler = async (req, res) => {
       result: resultMessage.success,
     });
   } catch (err) {
+    console.log(err);
     res.status(500).json({
       message: "データベースとの接続に失敗しました",
       result: resultMessage.failed,
@@ -506,13 +519,10 @@ export const getProductDetail: RequestHandler = async (req, res) => {
     const asset = await prisma.asset.findUnique({
       where: {
         pr_cd: pr_cd,
-        pr_cd_asb_key: {
+        pr_cd_asb_cd: {
           pr_cd,
-          asb_key: main_asb,
+          asb_cd: main_asb,
         },
-      },
-      select: {
-        ast_img: true,
       },
     });
 

@@ -10,29 +10,25 @@ datasource db {
 model asset {
   ast_cd    String     @id @db.Char(36)
   ast_type  String     @db.Char(1)
-  ast_img   String     @db.Text
   ast_ext   String     @db.Char(4)
-  asb_key     String     @db.VarChar(255)
+  asb_cd      String   @db.Char(36)
   pr_cd     String     @db.Char(36)
   
-  assetbox  assetbox?  @relation(fields: [asb_key], references: [asb_key], map: "Asset_asb_key_fkey")
+  assetbox  assetbox?  @relation(fields: [asb_cd], references: [asb_cd], map: "Asset_asb_cd_fkey")
   product   product?   @relation(fields: [pr_cd], references: [pr_cd], map: "Asset_pr_cd_fkey")
 
-  @@index([asb_key], map: "Asset_asb_key_fkey")
+  @@index([asb_cd], map: "Asset_asb_cd_fkey")
   @@index([pr_cd], map: "Asset_pr_cd_fkey")
   
   // pr_cd と asb_cd の組み合わせをユニークにする
-  @@unique([pr_cd, asb_key], map: "Asset_pr_cd_asb_key_unique")
+  @@unique([pr_cd, asb_cd], map: "Asset_pr_cd_asb_cd_unique")
 }
 
 model assetbox {
   asb_cd      String     @id @db.Char(36)
-  asb_key     String     @unique @db.VarChar(255)
-  asb_is_main Boolean?
   asb_name    String     @db.VarChar(255)
-  asb_type    String?    @db.VarChar(255)
+  asb_type    String?    @db.Char(1)
   asset       asset[]
- 
 }
 
 model attr {
@@ -40,7 +36,7 @@ model attr {
   atr_name          String      @db.VarChar(255)
   atr_is_delete     String      @db.Char(1)
   atr_is_with_unit  String      @db.Char(1)
-  atr_control_type  String      @db.VarChar(255)
+  atr_control_type  String      @db.Char(1)
   atr_not_null      String      @db.Char(1)
   atr_max_length    Int?
   atr_select_list   String     @db.Text

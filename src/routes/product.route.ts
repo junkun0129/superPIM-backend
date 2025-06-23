@@ -15,7 +15,7 @@ import { authMiddleware } from "../middleware/auth.middleware";
 const router = express.Router();
 
 router.get("/list", authMiddleware, getProductsList);
-router.get("/filteredlist", authMiddleware, getFilterdProductsList);
+router.post("/filteredlist", authMiddleware, getFilterdProductsList);
 router.get("/detail/:pr_cd", authMiddleware, getProductDetail);
 // router.post("/udpate", authMiddleware, updateProduct);
 router.post("/delete", authMiddleware, deleteProduct);
