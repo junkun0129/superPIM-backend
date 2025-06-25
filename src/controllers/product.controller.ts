@@ -20,6 +20,7 @@ const getProductList = async ({
   kw,
   ct,
   id,
+  sd,
   isFiltered = false,
   req,
   res,
@@ -34,6 +35,7 @@ const getProductList = async ({
   kw: string;
   ct: string;
   id: string;
+  sd: string;
   isFiltered?: boolean;
   req: Request;
   res: Response;
@@ -67,6 +69,14 @@ const getProductList = async ({
       pr_is_series: is,
       pr_is_deleted: id,
     };
+
+    let seriesWhere: Prisma.productWhereInput = {};
+
+    if (!!sd) {
+      seriesWhere = {
+        pr_series_cd: sd,
+      };
+    }
 
     let kwWhere: Prisma.productWhereInput = {};
 
@@ -193,7 +203,7 @@ const getProductList = async ({
     }
 
     const where: Prisma.productWhereInput = {
-      AND: [baseWhere, kwWhere, wsWhere, ctWhere, attrWhere],
+      AND: [baseWhere, kwWhere, wsWhere, ctWhere, attrWhere, seriesWhere],
     };
 
     const productsPromise = prisma.product.findMany({
@@ -252,7 +262,7 @@ const getProductList = async ({
 };
 
 export const getProductsList: RequestHandler = async (req, res) => {
-  const { is, pg, ps, ws, ob, or, kw, ct, id } = req.query as unknown as {
+  const { is, pg, ps, ws, ob, or, kw, ct, id, sd } = req.query as unknown as {
     is: string;
     pg: number;
     ps: number;
@@ -262,12 +272,13 @@ export const getProductsList: RequestHandler = async (req, res) => {
     kw: string;
     ct: string;
     id: string;
+    sd: string;
   };
-  await getProductList({ is, pg, ps, ws, ob, or, kw, ct, id, req, res });
+  await getProductList({ is, pg, ps, ws, ob, or, kw, ct, id, sd, req, res });
 };
 
 export const getFilterdProductsList: RequestHandler = async (req, res) => {
-  const { is, pg, ps, ws, ob, or, kw, ct, id } = req.query as unknown as {
+  const { is, pg, ps, ws, ob, or, kw, ct, id, sd } = req.query as unknown as {
     is: string;
     pg: number;
     ps: number;
@@ -277,6 +288,7 @@ export const getFilterdProductsList: RequestHandler = async (req, res) => {
     kw: string;
     ct: string;
     id: string;
+    sd: string;
   };
 
   const attrFilters: AttrFilter[] = req.body;
@@ -290,6 +302,7 @@ export const getFilterdProductsList: RequestHandler = async (req, res) => {
     kw,
     ct,
     id,
+    sd,
     req,
     res,
     isFiltered: true,
@@ -364,16 +377,18 @@ export const createProduct: RequestHandler = async (req, res) => {
       ctg_cd,
       attrvalues,
       is_series,
+      pr_series_cd,
     }: {
       is_series: string;
       pr_name: string;
       pr_hinban: string;
       ctg_cd: string;
       pcl_cd: string;
+      pr_series_cd: string;
       attrvalues: { atr_cd: string; atv_value: string }[];
     } = req.body;
     const pr_cd = generateRandomString(36);
-    console.log(pr_cd);
+
     const newProduct = await prisma.product.create({
       data: {
         pr_cd: pr_cd,
@@ -382,7 +397,7 @@ export const createProduct: RequestHandler = async (req, res) => {
         pr_description: "",
         pcl_cd,
         pr_is_deleted: "0",
-        pr_series_cd: "",
+        pr_series_cd,
         pr_labels: "",
         pr_is_discontinued: "0",
         pr_is_series: is_series,
@@ -404,7 +419,6 @@ export const createProduct: RequestHandler = async (req, res) => {
         },
       },
     });
-    console.log(newProduct, "newproduct");
     res.status(201).json({
       result: resultMessage.success,
       data: newProduct,
@@ -524,12 +538,18 @@ export const getProductDetail: RequestHandler = async (req, res) => {
           asb_cd: main_asb,
         },
       },
+      select: {
+        ast_ext: true,
+      },
     });
+    const imgUrl = !!asset
+      ? `http://localhost:3000/${main_asb}/${pr_cd}${asset.ast_ext}`
+      : "";
 
     const data = {
       product: productData,
       attrvalues: attrvaluesData,
-      asset,
+      img_url: imgUrl,
     };
     res.status(200).json({
       result: resultMessage.success,

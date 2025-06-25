@@ -765,3 +765,102 @@ export const updateAttrValue: RequestHandler = async (req, res) => {
     });
   }
 };
+
+type GetProductAttrListParam = {
+  //pr_cd
+  pn: string;
+  //pcl_cd
+  pc: string;
+  //共通項目か固有項目か両方か
+  cs: string;
+};
+
+const attrpclCommonType = {
+  common: "1",
+  unique: "0",
+  both: "2",
+};
+
+export const getProductAttrList: RequestHandler = async (req, res) => {
+  try {
+    const { pn, pc, cs }: GetProductAttrListParam = req.params as {
+      pn: string;
+      pc: string;
+      cs: string;
+    };
+
+    let isCommonWhere: Prisma.attrpclWhereInput = {};
+    if (cs !== attrpclCommonType.both) {
+      isCommonWhere = {
+        atp_is_common: cs,
+      };
+    }
+
+    const cdWhere: Prisma.attrpclWhereInput = { pcl_cd: pc };
+
+    const where: Prisma.attrpclWhereInput = {
+      AND: [isCommonWhere, cdWhere],
+    };
+
+    const pclattrList = await prisma.attrpcl.findMany({
+      where,
+      select: {
+        pcl_cd: true,
+        atp_order: true,
+        atp_is_show: true,
+        atp_alter_name: true,
+        atp_is_common: true,
+        attr: {
+          select: {
+            atr_cd: true,
+            atr_not_null: true,
+            atr_max_length: true,
+            atr_unit: true,
+            atr_is_with_unit: true,
+            atr_control_type: true,
+            atr_name: true,
+            atr_select_list: true,
+            atr_default_value: true,
+          },
+        },
+      },
+    });
+
+    let returnObject: any = {};
+    pclattrList.forEach((pclattr) => {
+      returnObject[pclattr.pcl_cd] = pclattr;
+    });
+
+    const attrvalueList = await prisma.attrvalue.findMany({
+      where: {
+        pr_cd: pn,
+        attr: {
+          attrpcl: {
+            some: {
+              pcl_cd: pc,
+            },
+          },
+        },
+      },
+    });
+
+    attrvalueList.forEach((attrvalue) => {
+      if (!(attrvalue.atr_cd in returnObject)) return;
+      returnObject[attrvalue.atr_cd] = {
+        ...returnObject[attrvalue.atr_cd],
+        value: attrvalue.atv_value,
+      };
+    });
+
+    res.status(200).json({
+      data: returnObject,
+      message: "属性の取得に成功しました。",
+      result: resultMessage.success,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: resultMessage.failed,
+      result: error,
+    });
+  }
+};
