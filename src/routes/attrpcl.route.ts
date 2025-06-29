@@ -17,6 +17,8 @@ import {
   getPclEntries,
   getPclAttrEntries,
   getAttrsForPrFilter,
+  getProductAttrList,
+  updateProductAttrs,
 } from "../controllers/attrpcl.controller"; // コントローラーのファイル名に合わせてパスを調整してください
 import { authMiddleware } from "../middleware/auth.middleware"; // 必要に応じて
 
@@ -45,4 +47,7 @@ router.post("/pclattrs/update", authMiddleware, updateAttrPcl);
 router.post("/pclattrs/delete", authMiddleware, deleteAttrPcl);
 router.get("/pclattrs/entries", authMiddleware, getPclAttrEntries);
 
+//product-attr 関連
+router.get("/atrpr/list", authMiddleware, getProductAttrList);
+router.post("/atrpr/update", authMiddleware, updateProductAttrs);
 export default router;

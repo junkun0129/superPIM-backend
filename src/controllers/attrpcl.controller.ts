@@ -1,4 +1,4 @@
-import { Prisma, product } from "@prisma/client";
+import { attrvalue, Prisma, product } from "@prisma/client";
 import { resultMessage } from "../config";
 import { prisma } from "../db";
 import { Request, RequestHandler, Response } from "express";
@@ -773,30 +773,44 @@ type GetProductAttrListParam = {
   pc: string;
   //共通項目か固有項目か両方か
   cs: string;
+  //シリーズかSKUかシリーズ下のSKUか
+  ps: string;
 };
 
-const attrpclCommonType = {
-  common: "1",
-  unique: "0",
-  both: "2",
+const ATTR_DISPLAY_MODE = {
+  COMMON: "1",
+  UNIQUE: "0",
+  BOTH: "2",
+};
+
+const PR_STATUS = {
+  SERIES: "0",
+  SKU: "1",
+  SKU_WITH_SERIES: "2",
 };
 
 export const getProductAttrList: RequestHandler = async (req, res) => {
   try {
-    const { pn, pc, cs }: GetProductAttrListParam = req.params as {
+    const {
+      pn: pr_cd,
+      pc: pcl_cd,
+      cs: display_mode,
+      ps: series_cd,
+    }: GetProductAttrListParam = req.query as {
       pn: string;
       pc: string;
       cs: string;
+      ps: string;
     };
 
     let isCommonWhere: Prisma.attrpclWhereInput = {};
-    if (cs !== attrpclCommonType.both) {
+    if (display_mode !== ATTR_DISPLAY_MODE.BOTH) {
       isCommonWhere = {
-        atp_is_common: cs,
+        atp_is_common: display_mode,
       };
     }
 
-    const cdWhere: Prisma.attrpclWhereInput = { pcl_cd: pc };
+    const cdWhere: Prisma.attrpclWhereInput = { pcl_cd: pcl_cd };
 
     const where: Prisma.attrpclWhereInput = {
       AND: [isCommonWhere, cdWhere],
@@ -806,6 +820,7 @@ export const getProductAttrList: RequestHandler = async (req, res) => {
       where,
       select: {
         pcl_cd: true,
+        atp_cd: true,
         atp_order: true,
         atp_is_show: true,
         atp_alter_name: true,
@@ -820,7 +835,6 @@ export const getProductAttrList: RequestHandler = async (req, res) => {
             atr_control_type: true,
             atr_name: true,
             atr_select_list: true,
-            atr_default_value: true,
           },
         },
       },
@@ -828,21 +842,58 @@ export const getProductAttrList: RequestHandler = async (req, res) => {
 
     let returnObject: any = {};
     pclattrList.forEach((pclattr) => {
-      returnObject[pclattr.pcl_cd] = pclattr;
+      returnObject[pclattr.attr.atr_cd] = pclattr;
     });
 
-    const attrvalueList = await prisma.attrvalue.findMany({
-      where: {
-        pr_cd: pn,
-        attr: {
-          attrpcl: {
-            some: {
-              pcl_cd: pc,
+    let attrvalueList: attrvalue[] = [];
+
+    if (series_cd !== "" && display_mode !== ATTR_DISPLAY_MODE.UNIQUE) {
+      let commonKeys: string[] = [];
+      let uniqueKeys: string[] = [];
+      let commonValues: attrvalue[] = [];
+      let uniqueValues: attrvalue[] = [];
+
+      Object.values(returnObject).forEach((atrpcl: any) => {
+        if (atrpcl.atp_is_common === ATTR_DISPLAY_MODE.COMMON) {
+          commonKeys.push(atrpcl.attr.atr_cd);
+        } else {
+          uniqueKeys.push(atrpcl.attr.atr_cd);
+        }
+      });
+
+      commonValues = await prisma.attrvalue.findMany({
+        where: {
+          atr_cd: {
+            in: commonKeys,
+          },
+        },
+      });
+
+      if (display_mode === ATTR_DISPLAY_MODE.BOTH) {
+        uniqueValues = await prisma.attrvalue.findMany({
+          where: {
+            atr_cd: {
+              in: uniqueKeys,
+            },
+          },
+        });
+      }
+
+      attrvalueList = [...commonValues, ...uniqueValues];
+    } else {
+      attrvalueList = await prisma.attrvalue.findMany({
+        where: {
+          pr_cd: pr_cd,
+          attr: {
+            attrpcl: {
+              some: {
+                pcl_cd: pcl_cd,
+              },
             },
           },
         },
-      },
-    });
+      });
+    }
 
     attrvalueList.forEach((attrvalue) => {
       if (!(attrvalue.atr_cd in returnObject)) return;
@@ -853,7 +904,7 @@ export const getProductAttrList: RequestHandler = async (req, res) => {
     });
 
     res.status(200).json({
-      data: returnObject,
+      data: Object.values(returnObject),
       message: "属性の取得に成功しました。",
       result: resultMessage.success,
     });
@@ -861,6 +912,46 @@ export const getProductAttrList: RequestHandler = async (req, res) => {
     res.status(500).json({
       message: resultMessage.failed,
       result: error,
+    });
+  }
+};
+
+type UpdateProductAttrsBody = {
+  pr_cd: string;
+  attrs: {
+    atr_cd: string;
+    value: string;
+  }[];
+};
+
+export const updateProductAttrs: RequestHandler = async (req, res) => {
+  const { pr_cd, attrs }: UpdateProductAttrsBody = req.body;
+  try {
+    await prisma.$transaction(async (tx) => {
+      const updatePromises = attrs.map(async (attr) => {
+        return tx.attrvalue.update({
+          where: {
+            pr_cd_atr_cd: {
+              pr_cd: pr_cd,
+              atr_cd: attr.atr_cd,
+            },
+          },
+          data: {
+            atv_value: attr.value,
+          },
+        });
+      });
+
+      await Promise.all(updatePromises);
+    });
+    res.status(200).json({
+      message: "属性の更新に成功しました。",
+      result: resultMessage.success,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: resultMessage.failed,
+      result: err,
     });
   }
 };

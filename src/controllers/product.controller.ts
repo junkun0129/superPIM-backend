@@ -499,37 +499,6 @@ export const getProductDetail: RequestHandler = async (req, res) => {
       },
     });
 
-    const attrvaluesData = await prisma.attrvalue.findMany({
-      where: {
-        pr_cd,
-      },
-      select: {
-        atv_cd: true,
-        atv_value: true,
-        attr: {
-          select: {
-            atr_cd: true,
-            atr_name: true,
-            atr_is_with_unit: true,
-            attrpcl: {
-              where: {
-                pcl_cd: productData?.pcl_cd,
-              },
-              select: {
-                atp_is_common: true,
-                atp_order: true,
-              },
-            },
-            atr_unit: true,
-            atr_control_type: true,
-            atr_select_list: true,
-            atr_max_length: true,
-            atr_not_null: true,
-          },
-        },
-      },
-    });
-
     const asset = await prisma.asset.findUnique({
       where: {
         pr_cd: pr_cd,
@@ -548,7 +517,6 @@ export const getProductDetail: RequestHandler = async (req, res) => {
 
     const data = {
       product: productData,
-      attrvalues: attrvaluesData,
       img_url: imgUrl,
     };
     res.status(200).json({

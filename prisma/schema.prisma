@@ -76,6 +76,7 @@ model attrvalue {
 
   @@index([atr_cd], map: "AttrValue_atr_cd_fkey")
   @@index([pr_cd], map: "AttrValue_pr_cd_fkey")
+  @@unique([pr_cd, atr_cd], map: "AttrValue_pr_cd_atr_cd_unique")
 }
 
 model category {
