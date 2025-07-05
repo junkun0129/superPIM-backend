@@ -257,10 +257,17 @@ export const downloadAsset: RequestHandler = async (req, res) => {
       pr_cd: string;
       ext: string;
     };
-    res.download(`assets/${asb_cd}/${pr_cd}${ext}`, `${pr_cd}${ext}`, (err) => {
+    const folderPath = `assets/${asb_cd}/${pr_cd}${ext}`;
+    const fileName = `${pr_cd}${ext}`;
+
+    console.log(folderPath);
+    console.log(fileName);
+
+    res.download(folderPath, fileName, (err) => {
       if (err) throw new Error();
     });
   } catch (err) {
+    console.log(err);
     res.status(500).json({
       result: resultMessage.failed,
       message: "メインアセットボックス名の取得に失敗しました",

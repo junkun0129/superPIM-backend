@@ -9,6 +9,7 @@ import {
   downloadAsset,
   getAssetBoxes,
   getMainAssetBoxKey,
+  getProductAssets,
   uploadProductAsset,
 } from "../controllers/asset.controller";
 import multer from "multer";
@@ -17,11 +18,12 @@ const upload = multer();
 const router = express.Router();
 
 router.get("/getasb", authMiddleware, getAssetBoxes);
+router.get("/prlist", authMiddleware, getProductAssets);
 router.post("/changemain", authMiddleware, changeMainAssetBox);
 router.post("/createasb", authMiddleware, createAssetBox);
 router.post("/deleteasb", authMiddleware, deleteAssetBox);
 router.post("/deleteast", authMiddleware, deleteAsset);
-router.get("/download", authMiddleware, downloadAsset);
+router.get("/download", downloadAsset);
 router.get("/mainkey", authMiddleware, getMainAssetBoxKey);
 router.post(
   "/upload/:pr_cd/:type",
