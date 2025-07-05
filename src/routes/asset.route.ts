@@ -6,7 +6,9 @@ import {
   createAssetBox,
   deleteAsset,
   deleteAssetBox,
+  downloadAsset,
   getAssetBoxes,
+  getMainAssetBoxKey,
   uploadProductAsset,
 } from "../controllers/asset.controller";
 import multer from "multer";
@@ -19,6 +21,8 @@ router.post("/changemain", authMiddleware, changeMainAssetBox);
 router.post("/createasb", authMiddleware, createAssetBox);
 router.post("/deleteasb", authMiddleware, deleteAssetBox);
 router.post("/deleteast", authMiddleware, deleteAsset);
+router.get("/download", authMiddleware, downloadAsset);
+router.get("/mainkey", authMiddleware, getMainAssetBoxKey);
 router.post(
   "/upload/:pr_cd/:type",
   authMiddleware,

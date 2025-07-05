@@ -4,6 +4,8 @@ import { RequestHandler } from "express";
 import fs from "fs";
 import path from "path";
 import { generateRandomString } from "../utils";
+import { asset } from "@prisma/client";
+import { rm, unlink } from "fs/promises";
 export const getAssetBoxes: RequestHandler = async (req, res) => {
   try {
     const assetboxes = await prisma.assetbox.findMany();
@@ -19,57 +21,79 @@ export const getAssetBoxes: RequestHandler = async (req, res) => {
   }
 };
 
-export const uploadProductAsset: RequestHandler = async (req, res) => {
+export const getProductAssets: RequestHandler = async (req, res) => {
   try {
-    const { pr_cd, type } = req.params;
-    const { im, asb } = req.query as { im: string; asb: string };
-    const file = req.file;
-    if (!pr_cd || !file) {
-      res.status(400).json({ error: "pr_cd または file がありません" });
-      return;
-    }
+    const { pr_cd, type } = req.query as { pr_cd: string; type: string };
+    const assetboxesPromise = prisma.assetbox.findMany({
+      where: {
+        asb_type: type,
+      },
+    });
+    const assetsPromise = prisma.asset.findMany({
+      where: {
+        pr_cd,
+        ast_type: type,
+      },
+    });
 
-    if (!im && !asb) {
-      res.status(400).json({ error: "必要な情報が含まれていません" });
-      return;
-    }
+    const [assetboxes, assets] = await Promise.all([
+      assetboxesPromise,
+      assetsPromise,
+    ]);
 
-    //保存先フォルダの処理
-    let targetAsb: string = asb;
+    let assetsObject: {
+      [key: string]: asset;
+    } = {};
 
+    assets.forEach((asset) => {
+      assetsObject[asset.asb_cd] = asset;
+    });
+
+    res.status(200).json({
+      data: {
+        assets: assetsObject,
+        assetboxes,
+      },
+      result: resultMessage.success,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: err,
+      result: resultMessage.failed,
+    });
+  }
+};
+
+export const uploadProductAsset: RequestHandler = async (req, res) => {
+  const { pr_cd, type } = req.params;
+  const { im, asb } = req.query as { im: string; asb: string };
+  const file = req.file;
+  if (!pr_cd || !file) {
+    res.status(400).json({ error: "pr_cd または file がありません" });
+    return;
+  }
+
+  if (!im && !asb) {
+    res.status(400).json({ error: "必要な情報が含まれていません" });
+    return;
+  }
+
+  const ext = path.extname(file.originalname);
+  let targetAsb: string = asb;
+
+  try {
     if (im === "1") {
-      const txtFilePath = path.join(
-        __dirname,
-        "..",
-        "..",
-        "assets",
-        "main.txt"
-      );
-      const main_asb = fs.readFileSync(txtFilePath, "utf-8");
-
+      const main_asb = fs.readFileSync("assets/main.txt", "utf-8");
       targetAsb = main_asb;
     }
-
-    const saveFolderPath = path.join(
-      __dirname,
-      "..",
-      "..",
-      "assets",
-      targetAsb
-    );
-    await fs.promises.mkdir(saveFolderPath, { recursive: true });
+    //保存先のフォルダの作成
+    await fs.promises.mkdir(`assets/${targetAsb}`, { recursive: true });
 
     //保存するファイルの処理
-    const ext = path.extname(file.originalname);
-    const saveFilePath = path.join(
-      __dirname,
-      "..",
-      "..",
-      "assets",
-      targetAsb,
-      `${pr_cd}${ext}`
+    await fs.promises.writeFile(
+      `assets/${targetAsb}/${pr_cd}${ext}`,
+      file.buffer
     );
-    await fs.promises.writeFile(saveFilePath, file.buffer);
 
     const count = await prisma.asset.count({
       where: {
@@ -77,35 +101,39 @@ export const uploadProductAsset: RequestHandler = async (req, res) => {
         asb_cd: targetAsb,
       },
     });
+
+    const createPromise = prisma.asset.create({
+      data: {
+        ast_cd: generateRandomString(36),
+        asb_cd: targetAsb,
+        ast_type: type,
+        ast_ext: ext,
+        pr_cd,
+      },
+    });
+
+    let promises = [createPromise];
+
     if (count > 0) {
-      await prisma.asset.update({
+      const deletePromise = prisma.asset.delete({
         where: {
           pr_cd_asb_cd: {
             pr_cd,
             asb_cd: targetAsb,
           },
         },
-        data: {
-          ast_ext: ext,
-        },
       });
-    } else {
-      await prisma.asset.create({
-        data: {
-          ast_cd: generateRandomString(36),
-          asb_cd: targetAsb,
-          ast_type: type,
-          ast_ext: ext,
-          pr_cd,
-        },
-      });
+      promises.unshift(deletePromise);
     }
+
+    await prisma.$transaction(promises);
+
     res.status(200).json({
       result: resultMessage.success,
       message: "アセットのアップロードに成功しました",
     });
   } catch (err) {
-    console.log(err);
+    await unlink(`assets/${targetAsb}/${pr_cd}${ext}`);
     res.status(500).json({
       message: "アセットのアップロードに失敗しました",
       result: resultMessage.failed,
@@ -119,6 +147,7 @@ export const getMainAssetBoxKey: RequestHandler = async (req, res) => {
     res.status(200).json({
       result: resultMessage.success,
       data: mainKey,
+      message: "メインアセットボックス名の取得に成功しました",
     });
   } catch (err) {
     res.status(500).json({
@@ -145,7 +174,7 @@ export const changeMainAssetBox: RequestHandler = async (req, res) => {
 
 export const createAssetBox: RequestHandler = async (req, res) => {
   try {
-    const { asb_name, asb_type, asb_key } = req.body;
+    const { asb_name, asb_type } = req.body;
     const asb_cd = generateRandomString(36);
     await prisma.assetbox.create({
       data: {
@@ -169,23 +198,20 @@ export const createAssetBox: RequestHandler = async (req, res) => {
 export const deleteAssetBox: RequestHandler = async (req, res) => {
   try {
     const { asb_cd } = req.body;
-    const target = await prisma.assetbox.findUnique({
+
+    const deleteAssets = prisma.asset.deleteMany({
+      where: {
+        asb_cd,
+      },
+    });
+
+    const deleteAssetBox = prisma.assetbox.delete({
       where: { asb_cd },
     });
 
-    if (!target) throw new Error();
+    await prisma.$transaction([deleteAssets, deleteAssetBox]);
 
-    const mainAssetBoxKey = fs.readFileSync("assets/main.txt", "utf8");
-    if (target.asb_cd === mainAssetBoxKey) {
-      res.status(400).json({
-        result: resultMessage.failed,
-        message: "メインに指定されているアセットボックスは削除できません",
-      });
-    }
-
-    await prisma.assetbox.delete({
-      where: { asb_cd },
-    });
+    await rm(`assets/${asb_cd}`, { recursive: true, force: true });
 
     res.status(200).json({
       result: resultMessage.success,
@@ -202,9 +228,15 @@ export const deleteAssetBox: RequestHandler = async (req, res) => {
 export const deleteAsset: RequestHandler = async (req, res) => {
   try {
     const { asb_cd, pr_cd } = req.body;
-    fs.unlink(`assets/${asb_cd}/${pr_cd}`, (err) => {
-      throw new Error();
+    await prisma.asset.delete({
+      where: {
+        pr_cd_asb_cd: {
+          pr_cd,
+          asb_cd,
+        },
+      },
     });
+    await unlink(`assets/${asb_cd}/${pr_cd}`);
 
     res.status(200).json({
       result: resultMessage.success,
@@ -214,6 +246,24 @@ export const deleteAsset: RequestHandler = async (req, res) => {
     res.status(500).json({
       result: resultMessage.failed,
       message: "アセットの削除に失敗しました",
+    });
+  }
+};
+
+export const downloadAsset: RequestHandler = async (req, res) => {
+  try {
+    const { asb_cd, pr_cd, ext } = req.query as {
+      asb_cd: string;
+      pr_cd: string;
+      ext: string;
+    };
+    res.download(`assets/${asb_cd}/${pr_cd}${ext}`, `${pr_cd}${ext}`, (err) => {
+      if (err) throw new Error();
+    });
+  } catch (err) {
+    res.status(500).json({
+      result: resultMessage.failed,
+      message: "メインアセットボックス名の取得に失敗しました",
     });
   }
 };
