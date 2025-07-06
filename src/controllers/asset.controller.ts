@@ -48,11 +48,12 @@ export const getProductAssets: RequestHandler = async (req, res) => {
     assets.forEach((asset) => {
       assetsObject[asset.asb_cd] = asset;
     });
-
+    const main_asb = fs.readFileSync("assets/main.txt", "utf-8");
     res.status(200).json({
       data: {
         assets: assetsObject,
         assetboxes,
+        main_cd: main_asb,
       },
       result: resultMessage.success,
     });
@@ -67,6 +68,7 @@ export const getProductAssets: RequestHandler = async (req, res) => {
 export const uploadProductAsset: RequestHandler = async (req, res) => {
   const { pr_cd, type } = req.params;
   const { im, asb } = req.query as { im: string; asb: string };
+
   const file = req.file;
   if (!pr_cd || !file) {
     res.status(400).json({ error: "pr_cd または file がありません" });
@@ -134,6 +136,7 @@ export const uploadProductAsset: RequestHandler = async (req, res) => {
     });
   } catch (err) {
     await unlink(`assets/${targetAsb}/${pr_cd}${ext}`);
+    console.log(err);
     res.status(500).json({
       message: "アセットのアップロードに失敗しました",
       result: resultMessage.failed,
@@ -227,7 +230,9 @@ export const deleteAssetBox: RequestHandler = async (req, res) => {
 
 export const deleteAsset: RequestHandler = async (req, res) => {
   try {
-    const { asb_cd, pr_cd } = req.body;
+    const { asb_cd, pr_cd, ext } = req.body;
+    console.log(asb_cd);
+    console.log(pr_cd);
     await prisma.asset.delete({
       where: {
         pr_cd_asb_cd: {
@@ -236,13 +241,14 @@ export const deleteAsset: RequestHandler = async (req, res) => {
         },
       },
     });
-    await unlink(`assets/${asb_cd}/${pr_cd}`);
+    await unlink(`assets/${asb_cd}/${pr_cd}${ext}`);
 
     res.status(200).json({
       result: resultMessage.success,
       message: "アセットの削除に成功しました",
     });
   } catch (err) {
+    console.log(err);
     res.status(500).json({
       result: resultMessage.failed,
       message: "アセットの削除に失敗しました",
@@ -259,9 +265,6 @@ export const downloadAsset: RequestHandler = async (req, res) => {
     };
     const folderPath = `assets/${asb_cd}/${pr_cd}${ext}`;
     const fileName = `${pr_cd}${ext}`;
-
-    console.log(folderPath);
-    console.log(fileName);
 
     res.download(folderPath, fileName, (err) => {
       if (err) throw new Error();
