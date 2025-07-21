@@ -8,58 +8,58 @@ datasource db {
 }
 
 model asset {
-  ast_cd    String     @id @db.Char(36)
-  ast_type  String     @db.Char(1)
-  ast_ext   String     @db.Char(4)
-  asb_cd      String   @db.Char(36)
-  pr_cd     String     @db.Char(36)
-  
-  assetbox  assetbox?  @relation(fields: [asb_cd], references: [asb_cd], map: "Asset_asb_cd_fkey")
-  product   product?   @relation(fields: [pr_cd], references: [pr_cd], map: "Asset_pr_cd_fkey")
+  ast_cd   String @id @db.Char(36)
+  ast_type String @db.Char(1)
+  ast_ext  String @db.Char(4)
+  asb_cd   String @db.Char(36)
+  pr_cd    String @db.Char(36)
+
+  assetbox assetbox? @relation(fields: [asb_cd], references: [asb_cd], map: "Asset_asb_cd_fkey")
+  product  product?  @relation(fields: [pr_cd], references: [pr_cd], map: "Asset_pr_cd_fkey")
 
   @@index([asb_cd], map: "Asset_asb_cd_fkey")
   @@index([pr_cd], map: "Asset_pr_cd_fkey")
-  
+
   // pr_cd と asb_cd の組み合わせをユニークにする
   @@unique([pr_cd, asb_cd], map: "Asset_pr_cd_asb_cd_unique")
 }
 
 model assetbox {
-  asb_cd      String     @id @db.Char(36)
-  asb_name    String     @db.VarChar(255)
-  asb_type    String?    @db.Char(1)
-  asset       asset[]
+  asb_cd   String  @id @db.Char(36)
+  asb_name String  @db.VarChar(255)
+  asb_type String? @db.Char(1)
+  asset    asset[]
 }
 
 model attr {
-  atr_cd            String      @id @db.Char(36)
-  atr_name          String      @db.VarChar(255)
-  atr_is_delete     String      @db.Char(1)
-  atr_is_with_unit  String      @db.Char(1)
-  atr_control_type  String      @db.Char(1)
-  atr_not_null      String      @db.Char(1)
-  atr_max_length    Int?
-  atr_select_list   String     @db.Text
-  atr_default_value String     @db.VarChar(255)
-  atr_unit          String     @db.VarChar(255)
-  atr_created_at    DateTime
-  atr_updated_at    DateTime?
-  
-  attrpcl           attrpcl[]
-  attrvalue         attrvalue[]
-  header            header[]
+  atr_cd          String    @id @db.Char(36)
+  atr_name        String    @db.VarChar(255)
+  atr_is_delete   String    @db.Char(1)
+  atr_is_with_unit String   @db.Char(1)
+  atr_control_type String   @db.Char(1)
+  atr_not_null    String    @db.Char(1)
+  atr_max_length  Int?
+  atr_select_list String    @db.Text
+  atr_default_value String  @db.VarChar(255)
+  atr_unit        String    @db.VarChar(255)
+  atr_created_at  DateTime
+  atr_updated_at  DateTime?
+
+  attrpcl   attrpcl[]
+  attrvalue attrvalue[]
+  header    header[]
 }
 
 model attrpcl {
-  atp_cd            String   @id @db.Char(36)
-  atp_order         Int
-  atp_is_show       String   @db.Char(1)
-  atp_alter_name    String?  @db.VarChar(255)
-  atp_is_common     String   @db.Char(1)
-  atr_cd            String   @db.Char(36)
-  pcl_cd            String   @db.Char(36)
-  attr              attr     @relation(fields: [atr_cd], references: [atr_cd], map: "AttrPcl_atr_cd_fkey")
-  pcl               pcl      @relation(fields: [pcl_cd], references: [pcl_cd], map: "AttrPcl_pcl_cd_fkey")
+  atp_cd       String  @id @db.Char(36)
+  atp_order    Int
+  atp_is_show  String  @db.Char(1)
+  atp_alter_name String? @db.VarChar(255)
+  atp_is_common String  @db.Char(1)
+  atr_cd       String  @db.Char(36)
+  pcl_cd       String  @db.Char(36)
+  attr         attr    @relation(fields: [atr_cd], references: [atr_cd], map: "AttrPcl_atr_cd_fkey")
+  pcl          pcl     @relation(fields: [pcl_cd], references: [pcl_cd], map: "AttrPcl_pcl_cd_fkey")
 
 
   @@index([atr_cd], map: "AttrPcl_atr_cd_fkey")
@@ -80,111 +80,124 @@ model attrvalue {
 }
 
 model category {
-  ctg_cd     String       @id @db.Char(36)
-  ctg_name   String       @db.VarChar(255)
-  ctg_desc   String?      @db.Text
-  ctg_order  Int?
-  parent_cd  String?      @db.Char(36)
+  ctg_cd    String    @id @db.Char(36)
+  ctg_name  String    @db.VarChar(255)
+  ctg_desc  String?   @db.Text
+  ctg_order Int?
+  parent_cd String?   @db.Char(36)
 
   // 自己参照のリレーション
-  parent     category?   @relation("CategoryToSubcategories", fields: [parent_cd], references: [ctg_cd])
-  children   category[]  @relation("CategoryToSubcategories")
+  parent    category? @relation("CategoryToSubcategories", fields: [parent_cd], references: [ctg_cd])
+  children  category[] @relation("CategoryToSubcategories")
 
-  products   product[]   @relation("ProductCategory")
+  products product[] @relation("ProductCategory")
 }
 
 model header {
-  hdr_cd    String     @id @db.Char(36)
-  attr_cd   String     @db.Char(36)
-  wks_cd    String?    @db.Char(36) 
+  hdr_cd    String    @id @db.Char(36)
+  attr_cd   String    @db.Char(36)
+  wks_cd    String?   @db.Char(36)
   hdr_width Int
   hdr_order Int
-  
-  attr      attr       @relation(fields: [attr_cd], references: [atr_cd], map: "Header_attr_cd_fkey")
+
+  attr      attr      @relation(fields: [attr_cd], references: [atr_cd], map: "Header_attr_cd_fkey")
   workspace workspace? @relation(fields: [wks_cd], references: [wks_cd], map: "Header_wks_cd_fkey") // ← ? をつける
-  
+
   @@index([attr_cd], map: "Header_attr_cd_fkey")
   @@index([wks_cd], map: "Header_wks_cd_fkey")
 }
 
 
 model pcl {
-  pcl_cd         String    @id @db.Char(36)
-  pcl_name       String    @db.VarChar(255)
+  pcl_cd       String    @id @db.Char(36)
+  pcl_name     String    @db.VarChar(255)
   pcl_created_at DateTime
-  pcl_is_deleted String    @db.Char(1)
-  attrpcl        attrpcl[]
-  product        product[]
+  pcl_is_deleted String  @db.Char(1)
+  attrpcl      attrpcl[]
+  product      product[]
 }
 
 
 model product {
-  pr_cd                   String       @id @db.Char(36)
-  pr_name                 String       @db.VarChar(255)
-  pr_hinban               String       @db.VarChar(255)
-  pr_is_discontinued      String      @db.Char(1)
-  pr_acpt_status          Int      @default(0)
+  pr_cd              String      @id @db.Char(36)
+  pr_name            String      @db.VarChar(255)
+  pr_hinban          String      @db.VarChar(255)
+  pr_is_discontinued String      @db.Char(1)
+  pr_acpt_status     Int         @default(0)
   pr_acpt_last_updated_at DateTime?
-  pr_labels               String      @db.Text
-  pr_created_at           DateTime
-  pr_updated_at           DateTime?
-  pr_is_deleted           String      @db.Char(1)
-  pr_is_series            String      @db.Char(1)
-  pr_series_cd            String      @db.Char(36)
-  pr_description          String      @db.Text
-  pcl_cd                  String      @db.Char(36)
-  asset                   asset[]
-  attrvalue               attrvalue[]
-  pcl                     pcl         @relation(fields: [pcl_cd], references: [pcl_cd], map: "Product_pcl_cd_fkey")
-  categories              category[]   @relation("ProductCategory")
-  productworkspace        productworkspace[]
-  
+  pr_jan String? @db.VarChar(13)
+  pr_labels          String      @db.Text
+  pr_created_at      DateTime
+  pr_updated_at      DateTime?
+  pr_is_deleted      String      @db.Char(1)
+  pr_is_series       String      @db.Char(1)
+  pr_series_cd       String      @db.Char(36)
+  pes_cd             String?      @db.Char(36)
+  pr_description     String      @db.Text
+  pcl_cd             String      @db.Char(36)
+  asset              asset[]
+  attrvalue          attrvalue[]
+  inventory        inventory[] 
+  inventory_log     inventory_log[] 
+  price             price[] 
+  pcl                pcl         @relation(fields: [pcl_cd], references: [pcl_cd], map: "Product_pcl_cd_fkey")
+  categories         category[]  @relation("ProductCategory")
+  productworkspace   productworkspace[]
+
   @@index([pcl_cd], map: "Product_pcl_cd_fkey")
- 
+
+  processinventory processinventory[]
 }
 
 model user {
-  user_cd       String          @id @db.Char(36)
-  user_email    String          @db.VarChar(255)
-  user_groups   String?         @db.VarChar(255)
-  user_name     String          @db.VarChar(255)
-  user_password String          @db.VarChar(255)
-  userworkspace userworkspace[]
+  user_cd         String          @id @db.Char(36)
+  user_email      String          @db.VarChar(255)
+  user_groups     String?         @db.VarChar(255)
+  user_name       String          @db.VarChar(255)
+  user_password   String          @db.VarChar(255)
+  userworkspace   userworkspace[]
+  order_received order[]        @relation("OrderReceivedByUser") // New: 受領者としてのリレーション
+  order_created  order[]        @relation("OrderCreatedByUser")  // New: 注文者としてのリレーション
+  inventory_log  inventory_log[] // New: inventory_logとのリレーション
+  processinventory_submitted processinventory[] @relation("ProcessInventorySubmittedByUser") // New: 棚卸提出者としてのリレーション
+  processinventory_approved  processinventory[] @relation("ProcessInventoryApprovedByUser")  // New: 棚卸承認者としてのリレーション
+
+  processinventory processinventory[] @relation("ProcessInventorySubmittedToUser")
 }
 
 model userworkspace {
-  usw_cd         String    @id @db.Char(36)
+  usw_cd       String   @id @db.Char(36)
   usw_created_at DateTime
-  usw_status     String    @db.Char(1)
-  user_cd        String    @db.Char(36)
-  wks_cd         String    @db.Char(36)
-  
-  user           user      @relation(fields: [user_cd], references: [user_cd], map: "UserWorkspace_user_cd_fkey")
-  workspace      workspace @relation(fields: [wks_cd], references: [wks_cd], map: "UserWorkspace_wks_cd_fkey")
+  usw_status   String   @db.Char(1)
+  user_cd      String   @db.Char(36)
+  wks_cd       String   @db.Char(36)
+
+  user      user     @relation(fields: [user_cd], references: [user_cd], map: "UserWorkspace_user_cd_fkey")
+  workspace workspace @relation(fields: [wks_cd], references: [wks_cd], map: "UserWorkspace_wks_cd_fkey")
 
   @@index([user_cd], map: "UserWorkspace_user_cd_fkey")
   @@index([wks_cd], map: "UserWorkspace_wks_cd_fkey")
 }
 
 model workspace {
-  wks_cd         String          @id @db.Char(36)
-  wks_name       String          @db.VarChar(255)
-  wks_desc       String?         @db.Text
-  wks_created_by String          @db.Char(36)
+  wks_cd         String             @id @db.Char(36)
+  wks_name       String             @db.VarChar(255)
+  wks_desc       String?            @db.Text
+  wks_created_by String             @db.Char(36)
   wks_created_at DateTime
   header         header[]
   userworkspace  userworkspace[]
- 
+
   productworkspace productworkspace[]
 }
 
 model productworkspace {
-  prw_cd    String   @id @db.Char(36)
-  pr_cd     String   @db.Char(36)
-  wks_cd    String   @db.Char(36)
-  added_at  DateTime @default(now())
+  prw_cd   String   @id @db.Char(36)
+  pr_cd    String   @db.Char(36)
+  wks_cd   String   @db.Char(36)
+  added_at DateTime @default(now())
 
-  product   product  @relation(fields: [pr_cd], references: [pr_cd])
+  product   product   @relation(fields: [pr_cd], references: [pr_cd])
   workspace workspace @relation(fields: [wks_cd], references: [wks_cd])
 
   @@index([pr_cd], map: "ProductWorkspace_pr_cd_fkey")
@@ -192,4 +205,147 @@ model productworkspace {
   @@unique([pr_cd, wks_cd]) // 同じ商品が同じWorkspaceに重複登録されないように
 }
 
+// ここからMermaid.jsで提供されたテーブルを追加
 
+model inventory {
+  ivt_cd                String    @id @db.Char(36)
+  pr_cd                 String    @db.Char(36)
+  ivt_current_stock     Int
+  ivt_min_stock_threshold Int
+  ivt_max_stock_threshold Int
+  ivt_updated_at        DateTime
+  str_cd                String    @db.Char(36)
+
+  // リレーションシップの定義
+  product        product        @relation(fields: [pr_cd], references: [pr_cd])
+  store          store         @relation(fields: [str_cd], references: [str_cd])
+  inventory_log inventory_log[] // inventory_log からの参照
+
+  @@index([pr_cd])
+  @@index([str_cd])
+  @@map("inventory") // テーブル名とモデル名が異なる場合のために明示
+}
+
+model inventory_log {
+  ivl_cd              String    @id @db.Char(36)
+  ivt_cd              String    @db.Char(36)
+  pr_cd               String    @db.Char(36)
+  ivl_event_type      String    @db.VarChar(255) // イベントタイプは可変長文字列に
+  ivl_quantity_change Int
+  ivl_new_stock_num   Int
+  user_cd             String    @db.Char(36)
+  ivl_notes           String?   @db.Text
+  ivl_created_at      DateTime
+
+  // リレーションシップの定義
+  inventory inventory @relation(fields: [ivt_cd], references: [ivt_cd])
+  product   product     @relation(fields: [pr_cd], references: [pr_cd])
+  user      user        @relation(fields: [user_cd], references: [user_cd])
+
+  @@index([ivt_cd])
+  @@index([pr_cd])
+  @@index([user_cd])
+  @@map("inventory_log")
+}
+
+model order {
+  odr_cd          String    @id @db.Char(36)
+  dvr_cd          String    @db.Char(36)
+  odr_recieved_by String    @db.Char(36)
+  odr_created_by  String    @db.Char(36)
+  odr_created_at  DateTime
+  odr_where_at    String    @db.VarChar(255) // 現在地は可変長文字列に
+  odr_received_at DateTime? // 受領日がない場合があるためNullableに
+  odr_status      String    @db.VarChar(255) // ステータスは可変長文字列に
+  odr_notes       String?   @db.Text
+
+  // リレーションシップの定義
+  deliverier   deliverier @relation(fields: [dvr_cd], references: [dvr_cd])
+  received_by_user  user      @relation("OrderReceivedByUser", fields: [odr_recieved_by], references: [user_cd])
+  created_by_user   user      @relation("OrderCreatedByUser", fields: [odr_created_by], references: [user_cd])
+
+  @@index([dvr_cd])
+  @@index([odr_recieved_by])
+  @@index([odr_created_by])
+  @@map("order")
+}
+
+// deliverierの修正: モデル名とテーブル名を一致させるか、map属性を付ける
+model deliverier { // Mermaidの定義はdeliverier、既存命名規則から`deliveries`などが適切かもしれませんが、ここではMermaidに合わせます
+  dvr_cd         String  @id @db.Char(36)
+  dvr_name       String  @db.VarChar(255)
+  dvr_group_name String  @db.VarChar(255)
+  dvr_contact_name String  @db.VarChar(255)
+  dvr_phone      String  @db.VarChar(255)
+  dvr_email      String  @db.VarChar(255)
+
+  order order[] // orderからの参照
+
+  @@map("deliverier") // モデル名とテーブル名が異なる場合のために明示
+}
+
+model store {
+  str_cd   String @id @db.Char(36)
+  str_name String @db.VarChar(255) // VHARCHAR -> VARCHAR に修正
+  str_adress String @db.VarChar(255) // VHARCHAR -> VARCHAR に修正
+
+  inventory inventory[] // inventoryからの参照
+
+  @@map("store")
+}
+
+model sale {
+  sls_cd       String   @id @db.Char(36)
+  sls_name     String   @db.VarChar(255)
+  sls_created_at DateTime @db.Date // date -> DateTime @db.Date に修正 (PrismaのDate型はDateTime)
+  sls_note       String? @db.VarChar(255)
+  price price[] // priceからの参照
+
+  @@map("sale")
+}
+
+model price {
+  pes_cd       String   @id @db.Char(36) // PKの指定がなかったので追加
+  pr_cd        String   @db.Char(36)
+  sls_cd       String?   @db.Char(36)
+  pes_price    Int
+  pes_created_at DateTime @db.Date // date -> DateTime @db.Date に修正
+
+  // リレーションシップの定義
+  product product @relation(fields: [pr_cd], references: [pr_cd])
+  sale    sale?   @relation(fields: [sls_cd], references: [sls_cd])
+
+  @@index([pr_cd])
+  @@index([sls_cd])
+  @@map("price")
+}
+
+model processinventory {
+  piv_cd              String    @id @db.Char(36)
+  pr_cd               String    @db.Char(36)
+  piv_system_num      Int
+  piv_physical_num    Int
+  piv_submitted_at    DateTime
+  piv_submitted_by    String    @db.Char(36)
+  piv_submitted_to    String    @db.Char(36)
+  piv_apr_status      String    @db.VarChar(255) // ステータスは可変長文字列に
+  piv_approved_at     DateTime? // 承認されない場合があるためNullableに
+  piv_approved_by     String?   @db.Char(36) // 承認者がいない場合があるためNullableに
+  piv_finalized_num   Int? // 最終化されない場合があるためNullableに
+  piv_finalized_at    DateTime? @db.Date // 日付型はDateTime、@db.Dateで日付のみを格納
+  piv_submitted_note  String?   @db.Text
+  piv_approved_note   String?   @db.Text
+
+  // リレーションシップの定義
+  product         product @relation(fields: [pr_cd], references: [pr_cd])
+  submitted_by_user user    @relation("ProcessInventorySubmittedByUser", fields: [piv_submitted_by], references: [user_cd])
+  submitted_to_user user    @relation("ProcessInventorySubmittedToUser", fields: [piv_submitted_to], references: [user_cd])
+  approved_by_user  user?   @relation("ProcessInventoryApprovedByUser", fields: [piv_approved_by], references: [user_cd])
+  
+
+  @@index([pr_cd])
+  @@index([piv_submitted_by])
+  @@index([piv_submitted_to])
+  @@index([piv_approved_by])
+  @@map("processinventory")
+}

@@ -10,6 +10,7 @@ import workspaceRoute from "./routes/workspace.route";
 import headerRoute from "./routes/header.route";
 import attrpclRoute from "./routes/attrpcl.route";
 import assetRoute from "./routes/asset.route";
+import priceRoute from "./routes/price.route";
 // Load environment variables
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use("/workspace", workspaceRoute);
 app.use("/header", headerRoute);
 app.use("/atp", attrpclRoute);
 app.use("/assets", assetRoute);
+app.use("/price", priceRoute);
 
 // Start server
 server.listen(3000, () => {
